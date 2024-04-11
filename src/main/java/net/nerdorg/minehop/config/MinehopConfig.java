@@ -5,6 +5,7 @@ import me.shedaniel.autoconfig.annotation.Config;
 
 @Config(name = "minehop")
 public class MinehopConfig implements ConfigData {
+    public boolean enabled = true;
     public boolean show_ssj = true;
     public boolean show_efficiency = true;
     public boolean show_current_speed = true;
@@ -14,8 +15,4 @@ public class MinehopConfig implements ConfigData {
     public double sv_maxairspeed = 0.02325;
     public double speed_mul = 2.2;
     public double sv_gravity = 0.066;
-    public boolean help_command = true;
-    public boolean minehop_motd = true;
-    public String bot_token = "";
-    public String record_channel = "";
 }

@@ -1,5 +1,6 @@
 package net.nerdorg.minehop.util;
 
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 
@@ -10,5 +11,9 @@ public class MovementUtil {
         float f = MathHelper.sin(yaw * 0.017453292F);
         float g = MathHelper.cos(yaw * 0.017453292F);
         return new Vec3d(vec3d.x * (double)g - vec3d.z * (double)f, vec3d.y, vec3d.z * (double)g + vec3d.x * (double)f);
+    }
+
+    public static boolean isFlying(PlayerEntity player) {
+        return player != null && player.getAbilities().flying;
     }
 }

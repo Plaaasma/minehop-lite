@@ -93,7 +93,8 @@ public class SqueedometerHud {
             this.textRenderer = client.textRenderer;
             int eff_top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 4));
 
-            double effPercent = MinehopClient.last_efficiency;
+            var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getNameForScoreboard());
+            double effPercent = returnedEff == null ? 0 : returnedEff;
             if (effPercent >= Double.POSITIVE_INFINITY || effPercent <= Double.NEGATIVE_INFINITY) {
                 effPercent = 0;
             }
@@ -114,10 +115,10 @@ public class SqueedometerHud {
             int left = (int) ((client.getWindow().getScaledWidth() / 2) - (this.textRenderer.getWidth(ssjText) / 2));
 
             // Render the text
-            if (config.show_ssj) {
+            if (config.show_ssj && config.enabled) {
                 context.drawTextWithShadow(this.textRenderer, ssjText, left, top, color);
             }
-            if (config.show_efficiency) {
+            if (config.show_efficiency && config.enabled) {
                 context.drawTextWithShadow(this.textRenderer, effText, eff_left, eff_top, effColor);
             }
         }
@@ -143,19 +144,6 @@ public class SqueedometerHud {
                 MinehopClient.old_jump_time = 0;
                 MinehopClient.last_jump_time = 0;
             }
-        }
-    }
-
-    public void drawSpectators(DrawContext context, float tickDelta) {
-        this.client = MinecraftClient.getInstance();
-        this.textRenderer = client.textRenderer;
-
-        int top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 2));
-        int left = 6;
-        context.drawTextWithShadow(this.textRenderer, "Spectators \\/", left, top, Formatting.DARK_GRAY.getColorValue());
-        for (int index = 0; index < MinehopClient.spectatorList.size(); index++) {
-            top += this.textRenderer.fontHeight * 2;
-            context.drawTextWithShadow(this.textRenderer, MinehopClient.spectatorList.get(index), left, top, Formatting.RED.getColorValue());
         }
     }
 }

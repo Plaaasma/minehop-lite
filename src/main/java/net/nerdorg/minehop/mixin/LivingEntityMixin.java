@@ -13,8 +13,6 @@ import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.nerdorg.minehop.Minehop;
-import net.nerdorg.minehop.block.ModBlocks;
-import net.nerdorg.minehop.block.entity.BoostBlockEntity;
 import net.nerdorg.minehop.config.MinehopConfig;
 import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.util.MovementUtil;
@@ -52,15 +50,9 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow public abstract float getHeadYaw();
 
     private boolean wasOnGround;
-    private long boostTime = 0;
 
     public LivingEntityMixin(EntityType<?> type, World world) {
         super(type, world);
-    }
-
-    @Inject(method = "isPushable", at = @At("HEAD"), cancellable = true)
-    public void isPushable(CallbackInfoReturnable<Boolean> cir) {
-        cir.setReturnValue(false);
     }
 
     /**
@@ -70,19 +62,10 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
     public void travel(Vec3d movementInput, CallbackInfo ci) {
-        MinehopConfig config;
-        if (Minehop.override_config) {
-            config = new MinehopConfig();
-            config.sv_friction = Minehop.o_sv_friction;
-            config.sv_accelerate = Minehop.o_sv_accelerate;
-            config.sv_airaccelerate = Minehop.o_sv_airaccelerate;
-            config.sv_maxairspeed = Minehop.o_sv_maxairspeed;
-            config.speed_mul = Minehop.o_speed_mul;
-            config.sv_gravity = Minehop.o_sv_gravity;
-        }
-        else {
-            config = ConfigWrapper.config;
-        }
+        MinehopConfig config = ConfigWrapper.config;
+
+        //Disable if it's disabled lol
+        if (!config.enabled) { return; }
 
         //Enable for Players only
         if (this.getType() != EntityType.PLAYER) { return; }
@@ -96,7 +79,7 @@ public abstract class LivingEntityMixin extends Entity {
         LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
 
         //Disable on creative flying.
-        if (this.getType() == EntityType.PLAYER && isFlying((PlayerEntity) self)) { return; }
+        if (this.getType() == EntityType.PLAYER && MovementUtil.isFlying((PlayerEntity) self)) { return; }
 
         //Reverse multiplication done by the function that calls this one.
         this.sidewaysSpeed /= 0.98F;
@@ -116,14 +99,6 @@ public abstract class LivingEntityMixin extends Entity {
         //Apply Friction
         //
         boolean fullGrounded = this.wasOnGround && this.isOnGround(); //Allows for no friction 1-frame upon landing.
-        if (fullGrounded) {
-            if (!Minehop.groundedList.contains(this.getNameForScoreboard())) {
-                Minehop.groundedList.add(this.getNameForScoreboard());
-            }
-        }
-        else {
-            Minehop.groundedList.remove(this.getNameForScoreboard());
-        }
         if (fullGrounded) {
             Vec3d velFin = this.getVelocity();
             Vec3d horFin = new Vec3d(velFin.x,0.0F,velFin.z);
@@ -201,7 +176,6 @@ public abstract class LivingEntityMixin extends Entity {
                 double nogainv = Math.sqrt(nogainv2);
                 double maxgainv = Math.sqrt(nogainv2 + (maxVel * maxVel));
                 double strafeEfficiency = MathHelper.clamp((((v - nogainv) / (maxgainv - nogainv)) * 100), 0D, 100D);
-                Minehop.efficiencyMap.put(this.getNameForScoreboard(), strafeEfficiency);
                 List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard()) ? Minehop.efficiencyListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
                 efficiencyList.add(strafeEfficiency);
                 Minehop.efficiencyListMap.put(this.getNameForScoreboard(), efficiencyList);
@@ -239,15 +213,6 @@ public abstract class LivingEntityMixin extends Entity {
             yVel -= gravity;
         }
 
-        BlockState belowState = this.getWorld().getBlockState(this.getBlockPos());
-        if (belowState.isOf(ModBlocks.BOOSTER_BLOCK) && (this.getWorld().getTime() > this.boostTime + 5 || this.getWorld().getTime() < this.boostTime)) {
-            this.boostTime = this.getWorld().getTime();
-            BoostBlockEntity boostBlockEntity = (BoostBlockEntity) this.getWorld().getBlockEntity(this.getBlockPos());
-            if (boostBlockEntity != null) {
-                preVel = preVel.add(boostBlockEntity.getXPower(), 0, boostBlockEntity.getZPower());
-                yVel += boostBlockEntity.getYPower();
-            }
-        }
         this.setVelocity(preVel.x,yVel,preVel.z);
 
         //
@@ -261,6 +226,11 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
     void jump(CallbackInfo ci) {
+        MinehopConfig config = ConfigWrapper.config;
+
+        //Disable if it's disabled lol
+        if (!config.enabled) { return; }
+
         Vec3d vecFin = this.getVelocity();
         double yVel = this.getJumpVelocity();
         if (this.hasStatusEffect(StatusEffects.JUMP_BOOST)) {
@@ -271,9 +241,5 @@ public abstract class LivingEntityMixin extends Entity {
         this.velocityDirty = true;
 
         ci.cancel();
-    }
-
-    private static boolean isFlying(PlayerEntity player) {
-        return player != null && player.getAbilities().flying;
     }
 }

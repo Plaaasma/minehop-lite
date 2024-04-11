@@ -1,14 +1,8 @@
 {
-  "minehop.discord": "Discord",
-
-  "block.minehop.boost_pad": "Boost Pad",
-
-  "item.minehop.bounds_stick": "Bounds Stick",
-  "item.minehop.instagib_gun": "Instagib Coil",
-
   "key.category.minehop": "Minehop",
 
   "text.autoconfig.minehop.title": "Minehop Config",
+  "text.autoconfig.minehop.option.enabled": "Movement Enabled",
   "text.autoconfig.minehop.option.show_ssj": "Show SSJ",
   "text.autoconfig.minehop.option.show_efficiency": "Show Efficiency",
   "text.autoconfig.minehop.option.show_current_speed": "Show Current Speed",
@@ -17,9 +11,5 @@
   "text.autoconfig.minehop.option.sv_airaccelerate": "Air Acceleration (sv_airaccelerate)",
   "text.autoconfig.minehop.option.sv_maxairspeed": "Max Gain (sv_maxairspeed)",
   "text.autoconfig.minehop.option.speed_mul": "Speed Multiplier",
-  "text.autoconfig.minehop.option.sv_gravity": "Gravity",
-  "text.autoconfig.minehop.option.help_command": "Enable Minehop /help Command",
-  "text.autoconfig.minehop.option.minehop_motd": "Enable Minehop Server MOTD",
-  "text.autoconfig.minehop.option.bot_token": "Discord Bot Token (optional)",
-  "text.autoconfig.minehop.option.record_channel": "Discord Record Channel ID (optional, but required with a bot token)"
+  "text.autoconfig.minehop.option.sv_gravity": "Gravity"
 }
