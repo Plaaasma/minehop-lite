@@ -132,15 +132,15 @@ public abstract class LivingEntityMixin extends Entity {
             fI = fI * yawDifference;
         }
         if (this.isOnGround()) {
-            if (Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard())) {
-                List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getNameForScoreboard());
+            if (Minehop.efficiencyListMap.containsKey(this.getEntityName())) {
+                List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getEntityName());
                 if (efficiencyList != null && efficiencyList.size() > 0) {
                     double averageEfficiency = efficiencyList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
                     Entity localEntity = this.getWorld().getEntityById(this.getId());
                     if (localEntity instanceof PlayerEntity playerEntity) {
-                        Minehop.efficiencyUpdateMap.put(playerEntity.getNameForScoreboard(), averageEfficiency);
+                        Minehop.efficiencyUpdateMap.put(playerEntity.getEntityName(), averageEfficiency);
                     }
-                    Minehop.efficiencyListMap.put(this.getNameForScoreboard(), new ArrayList<>());
+                    Minehop.efficiencyListMap.put(this.getEntityName(), new ArrayList<>());
                 }
             }
         }
@@ -176,9 +176,9 @@ public abstract class LivingEntityMixin extends Entity {
                 double nogainv = Math.sqrt(nogainv2);
                 double maxgainv = Math.sqrt(nogainv2 + (maxVel * maxVel));
                 double strafeEfficiency = MathHelper.clamp((((v - nogainv) / (maxgainv - nogainv)) * 100), 0D, 100D);
-                List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard()) ? Minehop.efficiencyListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
+                List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getEntityName()) ? Minehop.efficiencyListMap.get(this.getEntityName()) : new ArrayList<>();
                 efficiencyList.add(strafeEfficiency);
-                Minehop.efficiencyListMap.put(this.getNameForScoreboard(), efficiencyList);
+                Minehop.efficiencyListMap.put(this.getEntityName(), efficiencyList);
             }
 
             this.setVelocity(newVelocity);
