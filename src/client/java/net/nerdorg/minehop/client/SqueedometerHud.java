@@ -93,7 +93,7 @@ public class SqueedometerHud {
             this.textRenderer = client.textRenderer;
             int eff_top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 4));
 
-            var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getEntityName());
+            var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getNameForScoreboard());
             double effPercent = returnedEff == null ? 0 : returnedEff;
             if (effPercent >= Double.POSITIVE_INFINITY || effPercent <= Double.NEGATIVE_INFINITY) {
                 effPercent = 0;
