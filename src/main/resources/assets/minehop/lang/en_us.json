@@ -1,6 +1,4 @@
 {
-  "key.category.minehop": "Minehop",
-
   "text.autoconfig.minehop.title": "Minehop Config",
   "text.autoconfig.minehop.option.enabled": "Movement Enabled",
   "text.autoconfig.minehop.option.show_ssj": "Show SSJ",
