@@ -3,12 +3,16 @@
 package net.nerdorg.minehop.mixin;
 
 import net.minecraft.block.BlockState;
+import net.minecraft.block.StairsBlock;
 import net.minecraft.entity.*;
+import net.minecraft.entity.damage.DamageSource;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
@@ -53,6 +57,13 @@ public abstract class LivingEntityMixin extends Entity {
 
     public LivingEntityMixin(EntityType<?> type, World world) {
         super(type, world);
+    }
+
+    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
+    public void onDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (source.isOf(DamageTypes.FALL)) {
+            cir.cancel();
+        }
     }
 
     /**
