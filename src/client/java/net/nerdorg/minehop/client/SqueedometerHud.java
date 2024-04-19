@@ -7,7 +7,9 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.text.StringVisitable;
 import net.minecraft.util.Formatting;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Position;
 import net.minecraft.util.math.Vec3d;
@@ -15,10 +17,12 @@ import net.nerdorg.minehop.Minehop;
 import net.nerdorg.minehop.MinehopClient;
 import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.config.MinehopConfig;
+import oshi.util.tuples.Pair;
+
+import java.util.List;
 
 @Environment(EnvType.CLIENT)
 public class SqueedometerHud {
-
     // Vars
     private MinecraftClient client;
     private TextRenderer textRenderer;
@@ -36,36 +40,34 @@ public class SqueedometerHud {
     public void drawMain(DrawContext context, float tickDelta) {
         this.client = MinecraftClient.getInstance();
         if (client != null) {
-            if (client.player != null) {
-                this.textRenderer = client.textRenderer;
+            this.textRenderer = client.textRenderer;
 
-                // Calculating Speed
-                Vec3d playerPosVec = client.player.getPos();
-                double travelledX = playerPosVec.x - client.player.prevX;
-                double travelledZ = playerPosVec.z - client.player.prevZ;
-                double currentSpeed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
+            // Calculating Speed
+            Vec3d playerPosVec = client.player.getPos();
+            double travelledX = playerPosVec.x - client.player.prevX;
+            double travelledZ = playerPosVec.z - client.player.prevZ;
+            double currentSpeed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
 
-                String currentSpeedText = "";
+            String currentSpeedText = "";
 
-                currentSpeedText = SpeedCalculator.speedText(currentSpeed);
-                // Calculate text position
-                int height = this.textRenderer.fontHeight;
-                int paddingX = 2;
-                int paddingY = 2;
-                int marginX = 4;
-                int marginY = 4;
-                int left = 0 + marginX;
-                int top = 0 + marginY;
-                int realHeight = height + paddingY * 2 - 1;
+            currentSpeedText = SpeedCalculator.speedText(currentSpeed);
+            // Calculate text position
+            int height = this.textRenderer.fontHeight;
+            int paddingX = 2;
+            int paddingY = 2;
+            int marginX = 4;
+            int marginY = 4;
+            int left = 0 + marginX;
+            int top = 0 + marginY;
+            int realHeight = height + paddingY * 2 - 1;
 
-                top += client.getWindow().getScaledHeight() - marginY * 2 - realHeight;
+            top += client.getWindow().getScaledHeight() - marginY * 2 - realHeight;
 
-                left += paddingX;
-                top += paddingY;
+            left += paddingX;
+            top += paddingY;
 
-                // Render the text
-                context.drawTextWithShadow(this.textRenderer, currentSpeedText, left, top, color);
-            }
+            // Render the text
+            context.drawTextWithShadow(this.textRenderer, currentSpeedText, left, top, color);
         }
     }
 
@@ -90,83 +92,131 @@ public class SqueedometerHud {
         }
     }
 
-    public void drawSSJ(DrawContext context, MinehopConfig config) {
+    private int getGaugeColor(double gauge) {
+        int absGauge = MathHelper.abs((int) gauge);
+        if (absGauge > 90) {
+            return Formatting.DARK_RED.getColorValue();
+        }
+        else if (absGauge > 70) {
+            return Formatting.RED.getColorValue();
+        }
+        else if (absGauge > 50) {
+            return Formatting.YELLOW.getColorValue();
+        }
+        else if (absGauge > 30) {
+            return Formatting.DARK_GREEN.getColorValue();
+        }
+        else if (absGauge > 10) {
+            return Formatting.GREEN.getColorValue();
+        }
+        else {
+            return Formatting.AQUA.getColorValue();
+        }
+    }
+
+    public void drawJHUD(DrawContext context, MinehopConfig config) {
+        this.client = MinecraftClient.getInstance();
+
         if (client != null) {
-            if (client.player != null) {
-                Vec3d playerPosVec = client.player.getPos();
-                if (MinehopClient.jump_count > 0) {
-                    this.client = MinecraftClient.getInstance();
-                    this.textRenderer = client.textRenderer;
-                    int eff_top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 4));
+            Vec3d playerPosVec = client.player.getPos();
+            if (MinehopClient.jump_count > 0) {
+                this.client = MinecraftClient.getInstance();
+                this.textRenderer = client.textRenderer;
 
-                    var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getNameForScoreboard());
-                    double effPercent = returnedEff == null ? 0 : returnedEff;
-                    if (effPercent >= Double.POSITIVE_INFINITY || effPercent <= Double.NEGATIVE_INFINITY) {
-                        effPercent = 0;
-                    } else if (effPercent < 0) {
-                        effPercent = 0;
-                    }
-
-                    int effColor = getEffColor(effPercent);
-
-                    String effText = SpeedCalculator.effText(effPercent);
-
-                    int eff_left = (int) ((client.getWindow().getScaledWidth() / 2) - (this.textRenderer.getWidth(effText) / 2));
-
-                    int top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 2));
-
-                    String ssjText = SpeedCalculator.ssjText(MinehopClient.last_jump_speed, MinehopClient.jump_count);
-
-                    int left = (int) ((client.getWindow().getScaledWidth() / 2) - (this.textRenderer.getWidth(ssjText) / 2));
-
-                    // Render the text
-                    if (config.show_ssj && config.enabled) {
-                        context.drawTextWithShadow(this.textRenderer, ssjText, left, top, color);
-                    }
-                    if (config.show_efficiency && config.enabled) {
-                        context.drawTextWithShadow(this.textRenderer, effText, eff_left, eff_top, effColor);
-                    }
+                var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getNameForScoreboard());
+                double effPercent = returnedEff == null ? 0 : returnedEff;
+                if (effPercent >= Double.POSITIVE_INFINITY || effPercent <= Double.NEGATIVE_INFINITY) {
+                    effPercent = 0;
+                } else if (effPercent < 0) {
+                    effPercent = 0;
                 }
 
-                if (config.show_prespeed) {
-                    String preText = SpeedCalculator.speedText(MinehopClient.start_jump_speed);
+                int effColor = getEffColor(effPercent);
 
-                    int pre_top = (int) ((client.getWindow().getScaledHeight()) - (this.textRenderer.fontHeight * 4));
-                    int pre_left = 6;
-                    double travelledX = playerPosVec.x - client.player.prevX;
-                    double travelledZ = playerPosVec.z - client.player.prevZ;
-                    double speed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
-                    if (MinehopClient.wasOnGround && !client.player.isOnGround() && MinehopClient.jump_count == 0) {
-                        MinehopClient.start_jump_speed = speed;
-                    }
-                    context.drawTextWithShadow(this.textRenderer, preText, pre_left, pre_top, Formatting.GREEN.getColorValue());
-                }
+                String effText = SpeedCalculator.effText(effPercent);
 
-                if (client.player == null || !client.player.isSpectator()) {
-                    if (MinehopClient.jumping) {
-                        if (client.world.getTime() >= MinehopClient.last_jump_time + 1 || client.world.getTime() < MinehopClient.last_jump_time || MinehopClient.last_jump_time == 0) {
-                            if (client.player.isOnGround()) {
-                                double travelledX = playerPosVec.x - client.player.prevX;
-                                double travelledZ = playerPosVec.z - client.player.prevZ;
-                                double speed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
+                int eff_top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 4));
 
-                                MinehopClient.old_jump_speed = MinehopClient.last_jump_speed;
-                                MinehopClient.last_jump_speed = speed;
-                                MinehopClient.jump_count += 1;
-                                MinehopClient.old_jump_time = MinehopClient.last_jump_time;
-                                MinehopClient.last_jump_time = client.world.getTime();
-                            }
+                int eff_left = (int) ((client.getWindow().getScaledWidth() / 2) - (this.textRenderer.getWidth(effText) / 2));
+
+                String ssjText = SpeedCalculator.ssjText(MinehopClient.last_jump_speed, MinehopClient.jump_count);
+
+                int ssj_top = (int) ((client.getWindow().getScaledHeight() / 2) + (this.textRenderer.fontHeight * 2));
+
+                int ssj_left = (int) ((client.getWindow().getScaledWidth() / 2) - (this.textRenderer.getWidth(ssjText) / 2));
+
+                if (Minehop.gaugeListMap.containsKey(client.player.getNameForScoreboard())) {
+                    if (client.world.getTime() % 4 == 0) {
+                        List<Double> gaugeList = Minehop.gaugeListMap.get(client.player.getNameForScoreboard());
+
+                        if (gaugeList.size() > 4) {
+                            gaugeList = gaugeList.subList(gaugeList.size() - 4, gaugeList.size());
                         }
-                    } else {
-                        MinehopClient.old_jump_speed = 0;
-                        MinehopClient.last_jump_speed = 0;
-                        MinehopClient.jump_count = 0;
-                        MinehopClient.old_jump_time = 0;
-                        MinehopClient.last_jump_time = 0;
+
+                        MinehopClient.gauge = gaugeList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
+
+                        Minehop.gaugeListMap.put(client.player.getNameForScoreboard(), gaugeList);
                     }
                 }
-                MinehopClient.wasOnGround = client.player.isOnGround();
+
+                Pair<String, Integer> gaugeData = SpeedCalculator.gaugeText(MinehopClient.gauge);
+                String gauge_text = gaugeData.getA();
+                int offsetToO = gaugeData.getB();
+
+                int gauge_top = (int) ((client.getWindow().getScaledHeight() / 2) - (this.textRenderer.fontHeight * offsetToO));
+
+                int gauge_left = (int) ((client.getWindow().getScaledWidth()) - (this.textRenderer.getWidth("/\\") / 2) - 12);
+
+                int gaugeColor = getGaugeColor(MinehopClient.gauge);
+
+                // Render the text
+                if (config.show_ssj) {
+                    context.drawTextWithShadow(this.textRenderer, ssjText, ssj_left, ssj_top, color);
+                }
+                if (config.show_efficiency) {
+                    context.drawTextWithShadow(this.textRenderer, effText, eff_left, eff_top, effColor);
+                }
+                if (config.show_gauge) {
+                    context.drawTextWrapped(this.textRenderer, StringVisitable.plain(gauge_text), gauge_left, gauge_top, this.textRenderer.getWidth("/\\"), gaugeColor);
+                }
             }
+            if (config.show_prespeed) {
+                String preText = SpeedCalculator.speedText(MinehopClient.start_jump_speed);
+
+                int pre_top = (int) ((client.getWindow().getScaledHeight()) - (this.textRenderer.fontHeight * 4));
+                int pre_left = 6;
+                double travelledX = playerPosVec.x - client.player.prevX;
+                double travelledZ = playerPosVec.z - client.player.prevZ;
+                double speed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
+                if (MinehopClient.wasOnGround && !client.player.isOnGround() && MinehopClient.jump_count == 0) {
+                    MinehopClient.start_jump_speed = speed;
+                }
+                context.drawTextWithShadow(this.textRenderer, preText, pre_left, pre_top, Formatting.GREEN.getColorValue());
+            }
+
+            if (client.player == null || !client.player.isSpectator()) {
+                if (MinehopClient.jumping) {
+                    if (client.world.getTime() >= MinehopClient.last_jump_time + 1 || client.world.getTime() < MinehopClient.last_jump_time || MinehopClient.last_jump_time == 0) {
+                        if (client.player.isOnGround()) {
+                            double travelledX = playerPosVec.x - client.player.prevX;
+                            double travelledZ = playerPosVec.z - client.player.prevZ;
+                            double speed = (double) MathHelper.sqrt((float) (travelledX * travelledX + travelledZ * travelledZ));
+                            MinehopClient.old_jump_speed = MinehopClient.last_jump_speed;
+                            MinehopClient.last_jump_speed = speed;
+                            MinehopClient.jump_count += 1;
+                            MinehopClient.old_jump_time = MinehopClient.last_jump_time;
+                            MinehopClient.last_jump_time = client.world.getTime();
+                        }
+                    }
+                } else {
+                    MinehopClient.old_jump_speed = 0;
+                    MinehopClient.last_jump_speed = 0;
+                    MinehopClient.jump_count = 0;
+                    MinehopClient.old_jump_time = 0;
+                    MinehopClient.last_jump_time = 0;
+                }
+            }
+            MinehopClient.wasOnGround = client.player.isOnGround();
         }
     }
 }

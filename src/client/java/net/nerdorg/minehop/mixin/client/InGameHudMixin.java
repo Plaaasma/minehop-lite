@@ -32,6 +32,6 @@ public abstract class InGameHudMixin {
         if (config.show_current_speed && config.enabled) {
             MinehopClient.squeedometerHud.drawMain(context, tickDelta);
         }
-        MinehopClient.squeedometerHud.drawSSJ(context, config);
+        MinehopClient.squeedometerHud.drawJHUD(context, config);
     }
 }
