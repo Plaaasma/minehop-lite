@@ -13,6 +13,7 @@ import java.util.List;
 public class Minehop implements ModInitializer {
 	public static HashMap<String, List<Double>> efficiencyListMap = new HashMap<>();
 	public static HashMap<String, Double> efficiencyUpdateMap = new HashMap<>();
+	public static HashMap<String, List<Double>> gaugeListMap = new HashMap<>();
 
 	@Override
 	public void onInitialize() {
