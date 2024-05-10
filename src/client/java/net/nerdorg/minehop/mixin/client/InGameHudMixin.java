@@ -29,8 +29,8 @@ public abstract class InGameHudMixin {
     private void renderSqueedometerHud(DrawContext context, float tickDelta, CallbackInfo info) {
         MinehopConfig config = ConfigWrapper.config;
 
-        if (config.show_current_speed && config.enabled) {
-            MinehopClient.squeedometerHud.drawMain(context, tickDelta);
+        if (config.jHud.speedHud.show_current_speed && config.enabled) {
+            MinehopClient.squeedometerHud.drawMain(context, tickDelta, config);
         }
         MinehopClient.squeedometerHud.drawJHUD(context, config);
     }
