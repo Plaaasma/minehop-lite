@@ -352,7 +352,7 @@ public abstract class LivingEntityMixin extends Entity {
             yawDifference = yawDifference * -1;
         }
 
-        if (!fullGrounded) {
+        if (!fullGrounded && !this.isClimbing()) {
             sI = sI * yawDifference;
             fI = fI * yawDifference;
         }
