@@ -109,7 +109,7 @@ public class SqueedometerHud {
                 this.client = MinecraftClient.getInstance();
                 this.textRenderer = client.textRenderer;
 
-                var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getEntityName());
+                var returnedEff = Minehop.efficiencyUpdateMap.get(client.player.getNameForScoreboard());
                 double effPercent = returnedEff == null ? 0 : returnedEff;
                 if (effPercent >= Double.POSITIVE_INFINITY || effPercent <= Double.NEGATIVE_INFINITY) {
                     effPercent = 0;
@@ -131,9 +131,9 @@ public class SqueedometerHud {
 
                 int ssj_left = (int) ((((float) config.jHud.ssjHud.ssj_x_offset / 100f) * client.getWindow().getScaledWidth()) - (this.textRenderer.getWidth(ssjText) / 2));
 
-                if (Minehop.gaugeListMap.containsKey(client.player.getEntityName())) {
+                if (Minehop.gaugeListMap.containsKey(client.player.getNameForScoreboard())) {
                     if (client.world.getTime() % 4 == 0) {
-                        List<Double> gaugeList = Minehop.gaugeListMap.get(client.player.getEntityName());
+                        List<Double> gaugeList = Minehop.gaugeListMap.get(client.player.getNameForScoreboard());
 
                         if (gaugeList.size() > 4) {
                             gaugeList = gaugeList.subList(gaugeList.size() - 4, gaugeList.size());
@@ -141,7 +141,7 @@ public class SqueedometerHud {
 
                         MinehopClient.gauge = gaugeList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
 
-                        Minehop.gaugeListMap.put(client.player.getEntityName(), gaugeList);
+                        Minehop.gaugeListMap.put(client.player.getNameForScoreboard(), gaugeList);
                     }
                 }
 

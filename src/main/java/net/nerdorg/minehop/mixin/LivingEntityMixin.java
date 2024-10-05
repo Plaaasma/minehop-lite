@@ -360,15 +360,15 @@ public abstract class LivingEntityMixin extends Entity {
         double perfectAngle = findOptimalStrafeAngle(sI, fI, config, fullGrounded);
 
         if (this.isOnGround()) {
-            if (Minehop.efficiencyListMap.containsKey(this.getEntityName())) {
-                List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getEntityName());
+            if (Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard())) {
+                List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getNameForScoreboard());
                 if (efficiencyList != null && efficiencyList.size() > 0) {
                     double averageEfficiency = efficiencyList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
                     Entity localEntity = this.getWorld().getEntityById(this.getId());
                     if (localEntity instanceof PlayerEntity playerEntity) {
-                        Minehop.efficiencyUpdateMap.put(playerEntity.getEntityName(), averageEfficiency);
+                        Minehop.efficiencyUpdateMap.put(playerEntity.getNameForScoreboard(), averageEfficiency);
                     }
-                    Minehop.efficiencyListMap.put(this.getEntityName(), new ArrayList<>());
+                    Minehop.efficiencyListMap.put(this.getNameForScoreboard(), new ArrayList<>());
                 }
             }
         }
@@ -409,14 +409,14 @@ public abstract class LivingEntityMixin extends Entity {
                 double gaugeValue = sI < 0 || fI < 0 ? (normalYaw - perfectAngle) : (perfectAngle - normalYaw);
                 gaugeValue = normalizeAngle(gaugeValue) * 2;
 
-                List<Double> gaugeList = Minehop.gaugeListMap.containsKey(this.getEntityName()) ? Minehop.gaugeListMap.get(this.getEntityName()) : new ArrayList<>();
+                List<Double> gaugeList = Minehop.gaugeListMap.containsKey(this.getNameForScoreboard()) ? Minehop.gaugeListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
                 gaugeList.add(gaugeValue);
-                Minehop.gaugeListMap.put(this.getEntityName(), gaugeList);
+                Minehop.gaugeListMap.put(this.getNameForScoreboard(), gaugeList);
 
                 double strafeEfficiency = MathHelper.clamp((((v - nogainv) / (maxgainv - nogainv)) * 100), 0D, 100D);
-                List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getEntityName()) ? Minehop.efficiencyListMap.get(this.getEntityName()) : new ArrayList<>();
+                List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard()) ? Minehop.efficiencyListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
                 efficiencyList.add(strafeEfficiency);
-                Minehop.efficiencyListMap.put(this.getEntityName(), efficiencyList);
+                Minehop.efficiencyListMap.put(this.getNameForScoreboard(), efficiencyList);
             }
 
             this.setVelocity(newVelocity);
