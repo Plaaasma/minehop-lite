@@ -1,6 +1,7 @@
 {
   "text.autoconfig.minehop.title": "Minehop Config",
   "text.autoconfig.minehop.option.enabled": "Movement Enabled",
+  "text.autoconfig.minehop.option.fall_damage": "Fall Damage Enabled",
   "text.autoconfig.minehop.option.movement": "Movement Settings",
 
   "text.autoconfig.minehop.option.jHud": "JHUD Settings",
