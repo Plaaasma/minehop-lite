@@ -125,155 +125,156 @@ public abstract class LivingEntityMixin extends Entity {
         if (source.isOf(DamageTypes.FALL) && !config.fall_damage) {
             cir.cancel();
         }
-
-        if (this.isInvulnerableTo(source)) {
-            cir.setReturnValue(false);
-        } else if (this.getWorld().isClient) {
-            cir.setReturnValue(false);
-        } else if (this.isDead()) {
-            cir.setReturnValue(false);
-        } else if (source.isIn(DamageTypeTags.IS_FIRE) && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)) {
-            cir.setReturnValue(false);
-        } else {
-            if (this.isSleeping() && !this.getWorld().isClient) {
-                this.wakeUp();
-            }
-
-            this.despawnCounter = 0;
-            float f = amount;
-            boolean bl = false;
-            float g = 0.0F;
-            if (amount > 0.0F && this.blockedByShield(source)) {
-                this.damageShield(amount);
-                g = amount;
-                amount = 0.0F;
-                if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
-                    Entity entity = source.getSource();
-                    if (entity instanceof LivingEntity) {
-                        LivingEntity livingEntity = (LivingEntity)entity;
-                        this.takeShieldHit(livingEntity);
-                    }
-                }
-
-                bl = true;
-            }
-
-            if (source.isIn(DamageTypeTags.IS_FREEZING) && this.getType().isIn(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-                amount *= 5.0F;
-            }
-
-            this.limbAnimator.setSpeed(1.5F);
-            boolean bl2 = true;
-            if ((float)this.timeUntilRegen > 10.0F && !source.isIn(DamageTypeTags.BYPASSES_COOLDOWN)) {
-                if (amount <= this.lastDamageTaken) {
-                    cir.setReturnValue(false);
-                }
-
-                this.applyDamage(source, amount - this.lastDamageTaken);
-                this.lastDamageTaken = amount;
-                bl2 = false;
+        else {
+            if (this.isInvulnerableTo(source)) {
+                cir.setReturnValue(false);
+            } else if (this.getWorld().isClient) {
+                cir.setReturnValue(false);
+            } else if (this.isDead()) {
+                cir.setReturnValue(false);
+            } else if (source.isIn(DamageTypeTags.IS_FIRE) && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)) {
+                cir.setReturnValue(false);
             } else {
-                this.lastDamageTaken = amount;
-                this.timeUntilRegen = 20;
-                this.applyDamage(source, amount);
-                this.maxHurtTime = 10;
-                this.hurtTime = this.maxHurtTime;
-            }
-
-            if (source.isIn(DamageTypeTags.DAMAGES_HELMET) && !this.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) {
-                this.damageHelmet(source, amount);
-                amount *= 0.75F;
-            }
-
-            Entity entity2 = source.getAttacker();
-            if (entity2 != null) {
-                if (entity2 instanceof LivingEntity) {
-                    LivingEntity livingEntity2 = (LivingEntity)entity2;
-                    if (!source.isIn(DamageTypeTags.NO_ANGER)) {
-                        this.setAttacker(livingEntity2);
-                    }
+                if (this.isSleeping() && !this.getWorld().isClient) {
+                    this.wakeUp();
                 }
 
-                if (entity2 instanceof PlayerEntity) {
-                    PlayerEntity playerEntity = (PlayerEntity)entity2;
-                    this.playerHitTimer = 100;
-                    this.attackingPlayer = playerEntity;
-                } else if (entity2 instanceof WolfEntity) {
-                    WolfEntity wolfEntity = (WolfEntity)entity2;
-                    if (wolfEntity.isTamed()) {
+                this.despawnCounter = 0;
+                float f = amount;
+                boolean bl = false;
+                float g = 0.0F;
+                if (amount > 0.0F && this.blockedByShield(source)) {
+                    this.damageShield(amount);
+                    g = amount;
+                    amount = 0.0F;
+                    if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
+                        Entity entity = source.getSource();
+                        if (entity instanceof LivingEntity) {
+                            LivingEntity livingEntity = (LivingEntity) entity;
+                            this.takeShieldHit(livingEntity);
+                        }
+                    }
+
+                    bl = true;
+                }
+
+                if (source.isIn(DamageTypeTags.IS_FREEZING) && this.getType().isIn(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
+                    amount *= 5.0F;
+                }
+
+                this.limbAnimator.setSpeed(1.5F);
+                boolean bl2 = true;
+                if ((float) this.timeUntilRegen > 10.0F && !source.isIn(DamageTypeTags.BYPASSES_COOLDOWN)) {
+                    if (amount <= this.lastDamageTaken) {
+                        cir.setReturnValue(false);
+                    }
+
+                    this.applyDamage(source, amount - this.lastDamageTaken);
+                    this.lastDamageTaken = amount;
+                    bl2 = false;
+                } else {
+                    this.lastDamageTaken = amount;
+                    this.timeUntilRegen = 20;
+                    this.applyDamage(source, amount);
+                    this.maxHurtTime = 10;
+                    this.hurtTime = this.maxHurtTime;
+                }
+
+                if (source.isIn(DamageTypeTags.DAMAGES_HELMET) && !this.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) {
+                    this.damageHelmet(source, amount);
+                    amount *= 0.75F;
+                }
+
+                Entity entity2 = source.getAttacker();
+                if (entity2 != null) {
+                    if (entity2 instanceof LivingEntity) {
+                        LivingEntity livingEntity2 = (LivingEntity) entity2;
+                        if (!source.isIn(DamageTypeTags.NO_ANGER)) {
+                            this.setAttacker(livingEntity2);
+                        }
+                    }
+
+                    if (entity2 instanceof PlayerEntity) {
+                        PlayerEntity playerEntity = (PlayerEntity) entity2;
                         this.playerHitTimer = 100;
-                        LivingEntity var11 = wolfEntity.getOwner();
-                        if (var11 instanceof PlayerEntity) {
-                            PlayerEntity playerEntity2 = (PlayerEntity)var11;
-                            this.attackingPlayer = playerEntity2;
-                        } else {
-                            this.attackingPlayer = null;
+                        this.attackingPlayer = playerEntity;
+                    } else if (entity2 instanceof WolfEntity) {
+                        WolfEntity wolfEntity = (WolfEntity) entity2;
+                        if (wolfEntity.isTamed()) {
+                            this.playerHitTimer = 100;
+                            LivingEntity var11 = wolfEntity.getOwner();
+                            if (var11 instanceof PlayerEntity) {
+                                PlayerEntity playerEntity2 = (PlayerEntity) var11;
+                                this.attackingPlayer = playerEntity2;
+                            } else {
+                                this.attackingPlayer = null;
+                            }
                         }
                     }
                 }
-            }
 
-            if (bl2) {
-                if (bl) {
-                    this.getWorld().sendEntityStatus(this, (byte)29);
-                } else {
-                    this.getWorld().sendEntityDamage(this, source);
-                }
+                if (bl2) {
+                    if (bl) {
+                        this.getWorld().sendEntityStatus(this, (byte) 29);
+                    } else {
+                        this.getWorld().sendEntityDamage(this, source);
+                    }
 
-                if (!source.isIn(DamageTypeTags.NO_IMPACT) && (!bl || amount > 0.0F)) {
-                    if (!source.isOf(DamageTypes.FALL)) {
-                        this.scheduleVelocityUpdate();
+                    if (!source.isIn(DamageTypeTags.NO_IMPACT) && (!bl || amount > 0.0F)) {
+                        if (!source.isOf(DamageTypes.FALL)) {
+                            this.scheduleVelocityUpdate();
+                        }
+                    }
+
+                    if (entity2 != null && !source.isIn(DamageTypeTags.IS_EXPLOSION)) {
+                        double d = entity2.getX() - this.getX();
+
+                        double e;
+                        for (e = entity2.getZ() - this.getZ(); d * d + e * e < 1.0E-4; e = (Math.random() - Math.random()) * 0.01) {
+                            d = (Math.random() - Math.random()) * 0.01;
+                        }
+
+                        this.takeKnockback(0.4000000059604645, d, e);
+                        if (!bl) {
+                            this.tiltScreen(d, e);
+                        }
                     }
                 }
 
-                if (entity2 != null && !source.isIn(DamageTypeTags.IS_EXPLOSION)) {
-                    double d = entity2.getX() - this.getX();
+                if (this.isDead()) {
+                    if (!this.tryUseTotem(source)) {
+                        SoundEvent soundEvent = this.getDeathSound();
+                        if (bl2 && soundEvent != null) {
+                            this.playSound(soundEvent, this.getSoundVolume(), this.getSoundPitch());
+                        }
 
-                    double e;
-                    for(e = entity2.getZ() - this.getZ(); d * d + e * e < 1.0E-4; e = (Math.random() - Math.random()) * 0.01) {
-                        d = (Math.random() - Math.random()) * 0.01;
+                        this.onDeath(source);
                     }
+                } else if (bl2) {
+                    this.playHurtSound(source);
+                }
 
-                    this.takeKnockback(0.4000000059604645, d, e);
-                    if (!bl) {
-                        this.tiltScreen(d, e);
+                boolean bl3 = !bl || amount > 0.0F;
+                if (bl3) {
+                    this.lastDamageSource = source;
+                    this.lastDamageTime = this.getWorld().getTime();
+                }
+
+                LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
+
+                if (self instanceof ServerPlayerEntity) {
+                    Criteria.ENTITY_HURT_PLAYER.trigger((ServerPlayerEntity) self, source, f, amount, bl);
+                    if (g > 0.0F && g < 3.4028235E37F) {
+                        ((ServerPlayerEntity) self).increaseStat(Stats.DAMAGE_BLOCKED_BY_SHIELD, Math.round(g * 10.0F));
                     }
                 }
-            }
 
-            if (this.isDead()) {
-                if (!this.tryUseTotem(source)) {
-                    SoundEvent soundEvent = this.getDeathSound();
-                    if (bl2 && soundEvent != null) {
-                        this.playSound(soundEvent, this.getSoundVolume(), this.getSoundPitch());
-                    }
-
-                    this.onDeath(source);
+                if (entity2 instanceof ServerPlayerEntity) {
+                    Criteria.PLAYER_HURT_ENTITY.trigger((ServerPlayerEntity) entity2, this, source, f, amount, bl);
                 }
-            } else if (bl2) {
-                this.playHurtSound(source);
+
+                cir.setReturnValue(bl3);
             }
-
-            boolean bl3 = !bl || amount > 0.0F;
-            if (bl3) {
-                this.lastDamageSource = source;
-                this.lastDamageTime = this.getWorld().getTime();
-            }
-
-            LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
-
-            if (self instanceof ServerPlayerEntity) {
-                Criteria.ENTITY_HURT_PLAYER.trigger((ServerPlayerEntity)self, source, f, amount, bl);
-                if (g > 0.0F && g < 3.4028235E37F) {
-                    ((ServerPlayerEntity)self).increaseStat(Stats.DAMAGE_BLOCKED_BY_SHIELD, Math.round(g * 10.0F));
-                }
-            }
-
-            if (entity2 instanceof ServerPlayerEntity) {
-                Criteria.PLAYER_HURT_ENTITY.trigger((ServerPlayerEntity)entity2, this, source, f, amount, bl);
-            }
-
-            cir.setReturnValue(bl3);
         }
 
         cir.cancel();
