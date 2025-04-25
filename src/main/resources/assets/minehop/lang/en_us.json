@@ -37,5 +37,8 @@
   "text.autoconfig.minehop.option.movement.sv_airaccelerate": "Air Acceleration (sv_airaccelerate)",
   "text.autoconfig.minehop.option.movement.sv_maxairspeed": "Max Gain (sv_maxairspeed)",
   "text.autoconfig.minehop.option.movement.speed_mul": "Speed Multiplier",
-  "text.autoconfig.minehop.option.movement.sv_gravity": "Gravity"
+  "text.autoconfig.minehop.option.movement.sv_gravity": "Gravity",
+
+  "key.minehop.toggle": "Toggle Minehop",
+  "category.minehop": "Minehop"
 }

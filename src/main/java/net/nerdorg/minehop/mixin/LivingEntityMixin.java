@@ -3,8 +3,6 @@
 package net.nerdorg.minehop.mixin;
 
 import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.StairsBlock;
 import net.minecraft.entity.*;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.damage.DamageTypes;
@@ -14,19 +12,21 @@ import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.passive.WolfEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.registry.tag.DamageTypeTags;
 import net.minecraft.registry.tag.EntityTypeTags;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.stat.Stats;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import net.nerdorg.minehop.Minehop;
-import net.nerdorg.minehop.config.MinehopConfig;
 import net.nerdorg.minehop.config.ConfigWrapper;
+import net.nerdorg.minehop.config.MinehopConfig;
 import net.nerdorg.minehop.util.MovementUtil;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
@@ -50,9 +50,8 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow protected abstract Vec3d applyClimbingSpeed(Vec3d velocity);
     @Shadow protected abstract float getJumpVelocity();
-    @Shadow public abstract boolean hasStatusEffect(StatusEffect effect);
-    @Shadow public abstract StatusEffectInstance getStatusEffect(StatusEffect effect);
-    @Shadow public abstract boolean isFallFlying();
+    @Shadow public abstract boolean hasStatusEffect(RegistryEntry<StatusEffect> effect);
+    @Shadow public abstract StatusEffectInstance getStatusEffect(RegistryEntry<StatusEffect> effect);
     @Shadow public abstract boolean isClimbing();
 
     @Shadow public abstract float getYaw(float tickDelta);
@@ -66,7 +65,7 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow public abstract boolean isDead();
 
     @Shadow public abstract boolean isSleeping();
-
+    @Shadow public abstract boolean isGliding();
     @Shadow public abstract void wakeUp();
 
     @Shadow protected int despawnCounter;
@@ -80,7 +79,7 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow @Final public LimbAnimator limbAnimator;
     @Shadow protected float lastDamageTaken;
 
-    @Shadow protected abstract void applyDamage(DamageSource source, float amount);
+    @Shadow protected abstract void applyDamage(ServerWorld world, DamageSource source, float amount);
 
     @Shadow public int maxHurtTime;
     @Shadow public int hurtTime;
@@ -98,7 +97,7 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow public abstract void tiltScreen(double deltaX, double deltaZ);
 
-    @Shadow protected abstract boolean tryUseTotem(DamageSource source);
+    @Shadow protected abstract boolean tryUseDeathProtector(DamageSource source);
 
     @Shadow @Nullable protected abstract SoundEvent getDeathSound();
 
@@ -110,6 +109,7 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow protected abstract void playHurtSound(DamageSource source);
 
+    @Shadow public abstract boolean isInvulnerableTo(ServerWorld world, DamageSource source);
     @Shadow @Nullable private DamageSource lastDamageSource;
     @Shadow private long lastDamageTime;
     private boolean wasOnGround;
@@ -119,14 +119,14 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    public void onDamage(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    public void onDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         MinehopConfig config = ConfigWrapper.config;
 
         if (source.isOf(DamageTypes.FALL) && !config.fall_damage) {
             cir.cancel();
         }
         else {
-            if (this.isInvulnerableTo(source)) {
+            if (this.isInvulnerableTo(world, source)) {
                 cir.setReturnValue(false);
             } else if (this.getWorld().isClient) {
                 cir.setReturnValue(false);
@@ -149,8 +149,7 @@ public abstract class LivingEntityMixin extends Entity {
                     amount = 0.0F;
                     if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
                         Entity entity = source.getSource();
-                        if (entity instanceof LivingEntity) {
-                            LivingEntity livingEntity = (LivingEntity) entity;
+                        if (entity instanceof LivingEntity livingEntity) {
                             this.takeShieldHit(livingEntity);
                         }
                     }
@@ -169,13 +168,13 @@ public abstract class LivingEntityMixin extends Entity {
                         cir.setReturnValue(false);
                     }
 
-                    this.applyDamage(source, amount - this.lastDamageTaken);
+                    this.applyDamage(world, source, amount - this.lastDamageTaken);
                     this.lastDamageTaken = amount;
                     bl2 = false;
                 } else {
                     this.lastDamageTaken = amount;
                     this.timeUntilRegen = 20;
-                    this.applyDamage(source, amount);
+                    this.applyDamage(world, source, amount);
                     this.maxHurtTime = 10;
                     this.hurtTime = this.maxHurtTime;
                 }
@@ -187,25 +186,21 @@ public abstract class LivingEntityMixin extends Entity {
 
                 Entity entity2 = source.getAttacker();
                 if (entity2 != null) {
-                    if (entity2 instanceof LivingEntity) {
-                        LivingEntity livingEntity2 = (LivingEntity) entity2;
+                    if (entity2 instanceof LivingEntity livingEntity2) {
                         if (!source.isIn(DamageTypeTags.NO_ANGER)) {
                             this.setAttacker(livingEntity2);
                         }
                     }
 
-                    if (entity2 instanceof PlayerEntity) {
-                        PlayerEntity playerEntity = (PlayerEntity) entity2;
+                    if (entity2 instanceof PlayerEntity playerEntity) {
                         this.playerHitTimer = 100;
                         this.attackingPlayer = playerEntity;
-                    } else if (entity2 instanceof WolfEntity) {
-                        WolfEntity wolfEntity = (WolfEntity) entity2;
+                    } else if (entity2 instanceof WolfEntity wolfEntity) {
                         if (wolfEntity.isTamed()) {
                             this.playerHitTimer = 100;
                             LivingEntity var11 = wolfEntity.getOwner();
                             if (var11 instanceof PlayerEntity) {
-                                PlayerEntity playerEntity2 = (PlayerEntity) var11;
-                                this.attackingPlayer = playerEntity2;
+                                this.attackingPlayer = (PlayerEntity) var11;
                             } else {
                                 this.attackingPlayer = null;
                             }
@@ -242,7 +237,7 @@ public abstract class LivingEntityMixin extends Entity {
                 }
 
                 if (this.isDead()) {
-                    if (!this.tryUseTotem(source)) {
+                    if (!this.tryUseDeathProtector(source)) {
                         SoundEvent soundEvent = this.getDeathSound();
                         if (bl2 && soundEvent != null) {
                             this.playSound(soundEvent, this.getSoundVolume(), this.getSoundPitch());
@@ -298,7 +293,7 @@ public abstract class LivingEntityMixin extends Entity {
         if (!this.canMoveVoluntarily() && !this.isLogicalSideForUpdatingMovement()) { return; }
 
         //Cancel override if not in plain walking state.
-        if (this.isTouchingWater() || this.isInLava() || this.isFallFlying()) { return; }
+        if (this.isTouchingWater() || this.isInLava() || this.isGliding()) { return; }
 
         //I don't have a better clue how to do this atm.
         LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
@@ -442,10 +437,11 @@ public abstract class LivingEntityMixin extends Entity {
             gravity = 0.01D;
             this.fallDistance = 0.0F;
         }
+        ChunkPos currentChunk = this.getChunkPos();
         if (this.hasStatusEffect(StatusEffects.LEVITATION)) {
             yVel += (0.05D * (this.getStatusEffect(StatusEffects.LEVITATION).getAmplifier() + 1) - preVel.y) * 0.2D;
             this.fallDistance = 0.0F;
-        } else if (this.getWorld().isClient && !this.getWorld().isChunkLoaded(blockPos)) {
+        } else if (this.getWorld().isClient && !this.getWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
             yVel = 0.0D;
         } else if (!this.hasNoGravity()) {
             yVel -= gravity;
