@@ -113,6 +113,11 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow @Nullable private DamageSource lastDamageSource;
     @Shadow private long lastDamageTime;
     private boolean wasOnGround;
+    private boolean wasCrouching = false;
+    private static final float STAND_HEIGHT = 1.8f;
+    private static final float CROUCH_HEIGHT = 1.35f;
+    private double baseFriction;
+    private double activeFriction;
 
     public LivingEntityMixin(EntityType<?> type, World world) {
         super(type, world);
@@ -301,6 +306,26 @@ public abstract class LivingEntityMixin extends Entity {
         //Disable on creative flying.
         if (this.getType() == EntityType.PLAYER && MovementUtil.isFlying((PlayerEntity) self)) { return; }
 
+        if (baseFriction == 0) {
+            baseFriction = ConfigWrapper.config.movement.sv_friction; // Save wtv friction player put in config
+            activeFriction = baseFriction; // Start with normal friction ( change l8r)
+        }
+
+        if (this.isSneaking()) {
+            activeFriction = 0.85; // seems corrcet
+        } else {
+            activeFriction = baseFriction;
+        }
+
+        boolean isCrouching = this.isSneaking();
+        if (isCrouching && !wasCrouching) {
+            // Check if there's room to "stand" before shifting up
+            if (this.getWorld().isSpaceEmpty(this, this.getBoundingBox().expand(0.0, STAND_HEIGHT - CROUCH_HEIGHT, 0.0))) {
+                this.setPosition(this.getX(), this.getY() + (STAND_HEIGHT - CROUCH_HEIGHT), this.getZ());
+            }
+        }
+        wasCrouching = isCrouching;
+
         //Reverse multiplication done by the function that calls this one.
         this.sidewaysSpeed /= 0.98F;
         this.forwardSpeed /= 0.98F;
@@ -326,7 +351,7 @@ public abstract class LivingEntityMixin extends Entity {
             if (speed > 0.001F) {
                 float drop = 0.0F;
 
-                drop += (speed * config.movement.sv_friction * friction);
+                drop += (speed * activeFriction * friction);
 
                 float newspeed = Math.max(speed - drop, 0.0F);
                 newspeed /= speed;
@@ -499,6 +524,15 @@ public abstract class LivingEntityMixin extends Entity {
         if (angle > 180) angle -= 360;
         else if (angle < -180) angle += 360;
         return angle;
+    }
+
+    @Override
+    public EntityDimensions getDimensions(EntityPose pose) {
+        EntityDimensions original = super.getDimensions(pose);
+        if (this.isSneaking()) {
+            return EntityDimensions.changing(original.width(), CROUCH_HEIGHT);
+        }
+        return original;
     }
 
     @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
