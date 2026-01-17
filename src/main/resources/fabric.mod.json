@@ -45,13 +45,13 @@
 	],
 	"depends": {
 		"fabricloader": ">=0.16.13",
-		"minecraft": "~1.21.4",
+		"minecraft": "~1.21.10",
 		"java": ">=21",
 		"fabric-api": "*",
-		"cloth-config2": ">=17.0.144"
+		"cloth-config2": ">=20.0.149"
 	},
 	"recommends": {
-		"modmenu": ">=13.0.3"
+		"modmenu": ">=16.0.0"
 	},
 	"suggests": {
 		"another-mod": "*"
