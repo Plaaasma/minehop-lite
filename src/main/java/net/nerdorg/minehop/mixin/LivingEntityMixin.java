@@ -113,6 +113,9 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow @Nullable private DamageSource lastDamageSource;
     @Shadow private long lastDamageTime;
     @Shadow public int timeUntilRegen;
+    @Shadow public float fallDistance;
+    @Shadow protected boolean velocityDirty;
+    @Shadow public boolean horizontalCollision;
     private boolean wasOnGround;
     private boolean wasCrouching = false;
     private static final float STAND_HEIGHT = 1.8f;
