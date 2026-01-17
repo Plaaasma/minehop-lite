@@ -19,7 +19,7 @@ public abstract class InGameHudMixin {
     private void renderSpeedometerHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo info) {
         MinehopConfig config = ConfigWrapper.config;
         MinecraftClient client = MinecraftClient.getInstance();
-        float tickDelta = tickCounter.getGameTimeDeltaPartialTick(false);
+        float tickDelta = ((RenderTickCounter.Dynamic) tickCounter).tickDelta;
 
         if (config.jHud.speedHud.show_current_speed && config.enabled) {
             MinehopClient.speedometerHud.drawMain(context, tickDelta, config);
