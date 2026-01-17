@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.nerdorg.minehop.client.SpeedometerHud;
 import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.config.MinehopConfig;
@@ -33,7 +34,7 @@ public class MinehopClient implements ClientModInitializer {
 				"key.minehop.toggle", // The translation key of the keybinding's name
 				InputUtil.Type.KEYSYM, // The type of the keybinding, KEYSYM for keyboard, MOUSE for mouse.
 				GLFW.GLFW_KEY_H, // The keycode of the key
-				"category.minehop" // The translation key of the keybinding's category.
+				KeyBinding.Category.create(Identifier.of("minehop", "category")) // The keybinding's category.
 		));
 
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {

@@ -19,7 +19,7 @@ public abstract class InGameHudMixin {
         MinehopConfig config = ConfigWrapper.config;
 
         if (config.jHud.speedHud.show_current_speed && config.enabled) {
-            MinehopClient.speedometerHud.drawMain(context, tickCounter.getTickDelta(true), config);
+            MinehopClient.speedometerHud.drawMain(context, tickCounter.getLastFrameDuration(), config);
         }
         MinehopClient.speedometerHud.drawJHUD(context, config);
     }
