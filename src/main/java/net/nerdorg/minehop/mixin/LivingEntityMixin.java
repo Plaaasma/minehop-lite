@@ -58,8 +58,8 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow public abstract void updateLimbs(boolean flutter);
 
-    @Shadow public float prevHeadYaw;
-    @Shadow public float prevYaw;
+    @Shadow public float lastHeadYaw;
+    @Shadow public float lastYaw;
 
     @Shadow public abstract float getHeadYaw();
 
@@ -367,7 +367,7 @@ public abstract class LivingEntityMixin extends Entity {
         //
         // Accelerate
         //
-        float yawDifference = MathHelper.wrapDegrees(this.getHeadYaw() - this.prevHeadYaw);
+        float yawDifference = MathHelper.wrapDegrees(this.getHeadYaw() - this.lastHeadYaw);
         if (yawDifference < 0) {
             yawDifference = yawDifference * -1;
         }
@@ -486,7 +486,7 @@ public abstract class LivingEntityMixin extends Entity {
     public double findOptimalStrafeAngle(double sI, double fI, MinehopConfig config, boolean fullGrounded) {
         double highestVelocity = -Double.MAX_VALUE;
         double optimalAngle = 0;
-        for (double angle = this.prevYaw - 45; angle < this.prevYaw + 45; angle += 1) {  // Test angles 0 to 355 degrees, in 5 degree increments
+        for (double angle = this.lastYaw - 45; angle < this.lastYaw + 45; angle += 1) {  // Test angles 0 to 355 degrees, in 5 degree increments
             Vec3d moveDir = MovementUtil.movementInputToVelocity(new Vec3d(sI, 0.0F, fI), 1.0F, (float) angle);
             Vec3d accelVec = this.getVelocity();
 
