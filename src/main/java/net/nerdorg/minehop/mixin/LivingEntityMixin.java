@@ -134,14 +134,12 @@ public abstract class LivingEntityMixin extends Entity {
         else {
             if (this.isInvulnerableTo(world, source)) {
                 cir.setReturnValue(false);
-            } else if (world.isClient) {
-                cir.setReturnValue(false);
             } else if (this.isDead()) {
                 cir.setReturnValue(false);
             } else if (source.isIn(DamageTypeTags.IS_FIRE) && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)) {
                 cir.setReturnValue(false);
             } else {
-                if (this.isSleeping() && !world.isClient) {
+                if (this.isSleeping()) {
                     this.wakeUp();
                 }
 
@@ -467,7 +465,7 @@ public abstract class LivingEntityMixin extends Entity {
         if (this.hasStatusEffect(StatusEffects.LEVITATION)) {
             yVel += (0.05D * (this.getStatusEffect(StatusEffects.LEVITATION).getAmplifier() + 1) - preVel.y) * 0.2D;
             this.fallDistance = 0.0F;
-        } else if (this.getEntityWorld().isClient && !this.getEntityWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
+        } else if (this.getEntityWorld().isClient() && !this.getEntityWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
             yVel = 0.0D;
         } else if (!this.hasNoGravity()) {
             yVel -= gravity;
