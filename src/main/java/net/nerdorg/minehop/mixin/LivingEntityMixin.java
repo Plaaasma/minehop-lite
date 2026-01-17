@@ -73,7 +73,7 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow public abstract float getDamageBlockedAmount(ServerWorld world, DamageSource source, float amount);
 
-    @Shadow public abstract void damageShield(float amount);
+    @Shadow protected abstract void damageEquipment(DamageSource source, float amount, EquipmentSlot[] slots);
 
     @Shadow protected abstract void takeShieldHit(ServerWorld world, LivingEntity attacker);
 
@@ -149,7 +149,7 @@ public abstract class LivingEntityMixin extends Entity {
                 float g = 0.0F;
                 float blockedAmount = this.getDamageBlockedAmount(world, source, amount);
                 if (blockedAmount > 0.0F) {
-                    this.damageShield(blockedAmount);
+                    this.damageEquipment(source, blockedAmount, new EquipmentSlot[]{EquipmentSlot.MAINHAND, EquipmentSlot.OFFHAND});
                     g = blockedAmount;
                     amount -= blockedAmount;
                     if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
