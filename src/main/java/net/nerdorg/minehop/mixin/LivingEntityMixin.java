@@ -82,7 +82,6 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow protected abstract void applyDamage(ServerWorld world, DamageSource source, float amount);
 
-    @Shadow public int maxHurtTime;
     @Shadow public int hurtTime;
 
     @Shadow public abstract ItemStack getEquippedStack(EquipmentSlot slot);
@@ -180,8 +179,7 @@ public abstract class LivingEntityMixin extends Entity {
                     this.lastDamageTaken = amount;
                     this.timeUntilRegen = 20;
                     this.applyDamage(world, source, amount);
-                    this.maxHurtTime = 10;
-                    this.hurtTime = this.maxHurtTime;
+                    this.hurtTime = 10;
                 }
 
                 if (source.isIn(DamageTypeTags.DAMAGES_HELMET) && !this.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) {
