@@ -71,11 +71,11 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow protected int despawnCounter;
 
-    @Shadow public abstract boolean blockedByShield(DamageSource source);
+    @Shadow public abstract float getDamageBlockedAmount(ServerWorld world, DamageSource source, float amount);
 
     @Shadow public abstract void damageShield(float amount);
 
-    @Shadow protected abstract void takeShieldHit(LivingEntity attacker);
+    @Shadow protected abstract void takeShieldHit(ServerWorld world, LivingEntity attacker);
 
     @Shadow @Final public LimbAnimator limbAnimator;
     @Shadow protected float lastDamageTaken;
@@ -147,14 +147,15 @@ public abstract class LivingEntityMixin extends Entity {
                 float f = amount;
                 boolean bl = false;
                 float g = 0.0F;
-                if (amount > 0.0F && this.blockedByShield(source)) {
-                    this.damageShield(amount);
-                    g = amount;
-                    amount = 0.0F;
+                float blockedAmount = this.getDamageBlockedAmount(world, source, amount);
+                if (blockedAmount > 0.0F) {
+                    this.damageShield(blockedAmount);
+                    g = blockedAmount;
+                    amount -= blockedAmount;
                     if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
                         Entity entity = source.getSource();
                         if (entity instanceof LivingEntity livingEntity) {
-                            this.takeShieldHit(livingEntity);
+                            this.takeShieldHit(world, livingEntity);
                         }
                     }
 
