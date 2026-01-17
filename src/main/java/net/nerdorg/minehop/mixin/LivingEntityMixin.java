@@ -59,6 +59,7 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow public abstract void updateLimbs(boolean flutter);
 
     @Shadow public float prevHeadYaw;
+    @Shadow public float prevYaw;
 
     @Shadow public abstract float getHeadYaw();
 
@@ -133,14 +134,14 @@ public abstract class LivingEntityMixin extends Entity {
         else {
             if (this.isInvulnerableTo(world, source)) {
                 cir.setReturnValue(false);
-            } else if (this.getWorld().isClient) {
+            } else if (world.isClient) {
                 cir.setReturnValue(false);
             } else if (this.isDead()) {
                 cir.setReturnValue(false);
             } else if (source.isIn(DamageTypeTags.IS_FIRE) && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)) {
                 cir.setReturnValue(false);
             } else {
-                if (this.isSleeping() && !this.getWorld().isClient) {
+                if (this.isSleeping() && !world.isClient) {
                     this.wakeUp();
                 }
 
@@ -215,9 +216,9 @@ public abstract class LivingEntityMixin extends Entity {
 
                 if (bl2) {
                     if (bl) {
-                        this.getWorld().sendEntityStatus(this, (byte) 29);
+                        world.sendEntityStatus(this, (byte) 29);
                     } else {
-                        this.getWorld().sendEntityDamage(this, source);
+                        world.sendEntityDamage(this, source);
                     }
 
                     if (!source.isIn(DamageTypeTags.NO_IMPACT) && (!bl || amount > 0.0F)) {
@@ -257,10 +258,10 @@ public abstract class LivingEntityMixin extends Entity {
                 boolean bl3 = !bl || amount > 0.0F;
                 if (bl3) {
                     this.lastDamageSource = source;
-                    this.lastDamageTime = this.getWorld().getTime();
+                    this.lastDamageTime = world.getTime();
                 }
 
-                LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
+                LivingEntity self = (LivingEntity) world.getEntityById(this.getId());
 
                 if (self instanceof ServerPlayerEntity) {
                     Criteria.ENTITY_HURT_PLAYER.trigger((ServerPlayerEntity) self, source, f, amount, bl);
@@ -301,7 +302,7 @@ public abstract class LivingEntityMixin extends Entity {
         if (this.isTouchingWater() || this.isInLava() || this.isGliding()) { return; }
 
         //I don't have a better clue how to do this atm.
-        LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
+        LivingEntity self = (LivingEntity) this.getEntityWorld().getEntityById(this.getId());
 
         //Disable on creative flying.
         if (this.getType() == EntityType.PLAYER && MovementUtil.isFlying((PlayerEntity) self)) { return; }
@@ -320,7 +321,7 @@ public abstract class LivingEntityMixin extends Entity {
         boolean isCrouching = this.isSneaking();
         if (isCrouching && !wasCrouching) {
             // Check if there's room to "stand" before shifting up
-            if (this.getWorld().isSpaceEmpty(this, this.getBoundingBox().expand(0.0, STAND_HEIGHT - CROUCH_HEIGHT, 0.0))) {
+            if (this.getEntityWorld().isSpaceEmpty(this, this.getBoundingBox().expand(0.0, STAND_HEIGHT - CROUCH_HEIGHT, 0.0))) {
                 this.setPosition(this.getX(), this.getY() + (STAND_HEIGHT - CROUCH_HEIGHT), this.getZ());
             }
         }
@@ -337,7 +338,7 @@ public abstract class LivingEntityMixin extends Entity {
 
         //Get Slipperiness and Movement speed.
         BlockPos blockPos = this.getVelocityAffectingPos();
-        float slipperiness = this.getWorld().getBlockState(blockPos).getBlock().getSlipperiness();
+        float slipperiness = this.getEntityWorld().getBlockState(blockPos).getBlock().getSlipperiness();
         float friction = 1-(slipperiness*slipperiness);
 
         //
@@ -384,7 +385,7 @@ public abstract class LivingEntityMixin extends Entity {
                 List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getNameForScoreboard());
                 if (efficiencyList != null && efficiencyList.size() > 0) {
                     double averageEfficiency = efficiencyList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
-                    Entity localEntity = this.getWorld().getEntityById(this.getId());
+                    Entity localEntity = this.getEntityWorld().getEntityById(this.getId());
                     if (localEntity instanceof PlayerEntity playerEntity) {
                         Minehop.efficiencyUpdateMap.put(playerEntity.getNameForScoreboard(), averageEfficiency);
                     }
@@ -466,7 +467,7 @@ public abstract class LivingEntityMixin extends Entity {
         if (this.hasStatusEffect(StatusEffects.LEVITATION)) {
             yVel += (0.05D * (this.getStatusEffect(StatusEffects.LEVITATION).getAmplifier() + 1) - preVel.y) * 0.2D;
             this.fallDistance = 0.0F;
-        } else if (this.getWorld().isClient && !this.getWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
+        } else if (this.getEntityWorld().isClient && !this.getEntityWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
             yVel = 0.0D;
         } else if (!this.hasNoGravity()) {
             yVel -= gravity;
