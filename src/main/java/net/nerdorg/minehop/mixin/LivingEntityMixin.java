@@ -112,6 +112,7 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow public abstract boolean isInvulnerableTo(ServerWorld world, DamageSource source);
     @Shadow @Nullable private DamageSource lastDamageSource;
     @Shadow private long lastDamageTime;
+    @Shadow public int timeUntilRegen;
     private boolean wasOnGround;
     private boolean wasCrouching = false;
     private static final float STAND_HEIGHT = 1.8f;
