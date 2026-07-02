@@ -9,20 +9,17 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.text.StringVisitable;
 import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Position;
 import net.minecraft.util.math.Vec3d;
 import net.nerdorg.minehop.Minehop;
 import net.nerdorg.minehop.MinehopClient;
-import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.config.MinehopConfig;
 import oshi.util.tuples.Pair;
 
 import java.util.List;
 
 @Environment(EnvType.CLIENT)
-public class SqueedometerHud {
+public class SpeedometerHud {
     // Vars
     private MinecraftClient client;
     private TextRenderer textRenderer;
@@ -171,7 +168,7 @@ public class SqueedometerHud {
                         context.drawTextWithShadow(this.textRenderer, gauge_text, gauge_left, gauge_top, gaugeColor);
                     }
                     else {
-                        context.drawTextWrapped(this.textRenderer, StringVisitable.plain(gauge_text), gauge_left, gauge_top, this.textRenderer.getWidth("/\\"), gaugeColor);
+                        context.drawWrappedText(this.textRenderer, StringVisitable.plain(gauge_text), gauge_left, gauge_top, this.textRenderer.getWidth("/\\"), gaugeColor, false);
                     }
                 }
             }
