@@ -1,5 +1,5 @@
 plugins {
-	id 'fabric-loom' version '1.10-SNAPSHOT'
+	id 'fabric-loom' version '1.17-SNAPSHOT'
 	id 'maven-publish'
 }
 
@@ -17,7 +17,7 @@ repositories {
 	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
 	// for more information about repositories.
 	maven { url "https://maven.shedaniel.me/" }
-	maven {	url "https://maven.terraformersmc.com/releases/"}
+	maven { url "https://maven.terraformersmc.com/releases/"}
 }
 
 loom {
@@ -51,7 +51,8 @@ fabricApi {
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	// Minecraft 26.1+ is unobfuscated; use official Mojang mappings instead of Yarn.
+	mappings loom.officialMojangMappings()
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
