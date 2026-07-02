@@ -1,6 +1,6 @@
 package net.nerdorg.minehop.mixin.client;
 
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.DeltaTracker;
 import net.nerdorg.minehop.MinehopClient;
 import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.config.MinehopConfig;
@@ -9,17 +9,18 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import net.minecraft.client.gui.hud.InGameHud;
-import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.Gui;
+import net.minecraft.client.gui.GuiGraphics;
 
-@Mixin(InGameHud.class)
+@Mixin(Gui.class)
 public abstract class InGameHudMixin {
+    // Yarn InGameHud#render(DrawContext, RenderTickCounter) -> Mojang Gui#render(GuiGraphics, DeltaTracker)
     @Inject(at = @At("TAIL"), method = "render")
-    private void renderSpeedometerHud(DrawContext context, RenderTickCounter tickCounter, CallbackInfo info) {
+    private void renderSpeedometerHud(GuiGraphics context, DeltaTracker tickCounter, CallbackInfo info) {
         MinehopConfig config = ConfigWrapper.config;
 
         if (config.jHud.speedHud.show_current_speed && config.enabled) {
-            MinehopClient.speedometerHud.drawMain(context, tickCounter.getTickDelta(true), config);
+            MinehopClient.speedometerHud.drawMain(context, tickCounter.getGameTimeDeltaPartialTick(true), config);
         }
         MinehopClient.speedometerHud.drawJHUD(context, config);
     }
