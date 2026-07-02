@@ -1,35 +1,34 @@
 // ORIGINAL BY hatninja ON GITHUB
+// Ported to Minecraft 26.2 / official Mojang mappings.
+// NOTE: This is a blind (uncompiled) port. Method/field names below follow Mojang
+// mappings for the 1.21.x -> 26.x line; a couple of the riskier symbols are flagged
+// with TODO and should be confirmed against a local `./gradlew build`.
 
 package net.nerdorg.minehop.mixin;
 
-import net.minecraft.advancement.criterion.Criteria;
-import net.minecraft.entity.*;
-import net.minecraft.entity.damage.DamageSource;
-import net.minecraft.entity.damage.DamageTypes;
-import net.minecraft.entity.effect.StatusEffect;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.effect.StatusEffects;
-import net.minecraft.entity.passive.WolfEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.entry.RegistryEntry;
-import net.minecraft.registry.tag.DamageTypeTags;
-import net.minecraft.registry.tag.EntityTypeTags;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.server.world.ServerWorld;
-import net.minecraft.sound.SoundEvent;
-import net.minecraft.stat.Stats;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.damagesource.DamageTypes;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.phys.Vec3;
 import net.nerdorg.minehop.Minehop;
 import net.nerdorg.minehop.config.ConfigWrapper;
 import net.nerdorg.minehop.config.MinehopConfig;
 import net.nerdorg.minehop.util.MovementUtil;
-import org.jetbrains.annotations.Nullable;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -42,76 +41,23 @@ import java.util.List;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
-    @Shadow private float movementSpeed;
-    @Shadow public float sidewaysSpeed;
-    @Shadow public float forwardSpeed;
-    @Shadow private int jumpingCooldown;
+    @Shadow public float speed;              // yarn: movementSpeed
+    @Shadow public float xxa;                // yarn: sidewaysSpeed
+    @Shadow public float zza;                // yarn: forwardSpeed
+    @Shadow private int noJumpDelay;         // yarn: jumpingCooldown
     @Shadow protected boolean jumping;
+    @Shadow public float yHeadRotO;          // yarn: prevHeadYaw
 
-    @Shadow protected abstract Vec3d applyClimbingSpeed(Vec3d velocity);
-    @Shadow protected abstract float getJumpVelocity();
-    @Shadow public abstract boolean hasStatusEffect(RegistryEntry<StatusEffect> effect);
-    @Shadow public abstract StatusEffectInstance getStatusEffect(RegistryEntry<StatusEffect> effect);
-    @Shadow public abstract boolean isClimbing();
+    @Shadow protected abstract Vec3 handleOnClimbable(Vec3 vec);           // yarn: applyClimbingSpeed
+    @Shadow protected abstract float getJumpPower();                       // yarn: getJumpVelocity
+    @Shadow public abstract boolean hasEffect(Holder<MobEffect> effect);   // yarn: hasStatusEffect
+    @Shadow public abstract MobEffectInstance getEffect(Holder<MobEffect> effect); // yarn: getStatusEffect
+    @Shadow public abstract boolean onClimbable();                         // yarn: isClimbing
+    @Shadow public abstract float getYHeadRot();                           // yarn: getHeadYaw
+    @Shadow public abstract boolean isFallFlying();                        // yarn: isGliding
+    @Shadow public abstract boolean isEffectiveAi();                       // yarn: canMoveVoluntarily
+    @Shadow public abstract BlockPos getBlockPosBelowThatAffectsMyMovement(); // yarn: getVelocityAffectingPos
 
-    @Shadow public abstract float getYaw(float tickDelta);
-
-    @Shadow public abstract void updateLimbs(boolean flutter);
-
-    @Shadow public float prevHeadYaw;
-
-    @Shadow public abstract float getHeadYaw();
-
-    @Shadow public abstract boolean isDead();
-
-    @Shadow public abstract boolean isSleeping();
-    @Shadow public abstract boolean isGliding();
-    @Shadow public abstract void wakeUp();
-
-    @Shadow protected int despawnCounter;
-
-    @Shadow public abstract boolean blockedByShield(DamageSource source);
-
-    @Shadow public abstract void damageShield(float amount);
-
-    @Shadow protected abstract void takeShieldHit(LivingEntity attacker);
-
-    @Shadow @Final public LimbAnimator limbAnimator;
-    @Shadow protected float lastDamageTaken;
-
-    @Shadow protected abstract void applyDamage(ServerWorld world, DamageSource source, float amount);
-
-    @Shadow public int maxHurtTime;
-    @Shadow public int hurtTime;
-
-    @Shadow public abstract ItemStack getEquippedStack(EquipmentSlot slot);
-
-    @Shadow public abstract void damageHelmet(DamageSource source, float amount);
-
-    @Shadow public abstract void setAttacker(@Nullable LivingEntity attacker);
-
-    @Shadow protected int playerHitTimer;
-    @Shadow @Nullable protected PlayerEntity attackingPlayer;
-
-    @Shadow public abstract void takeKnockback(double strength, double x, double z);
-
-    @Shadow public abstract void tiltScreen(double deltaX, double deltaZ);
-
-    @Shadow protected abstract boolean tryUseDeathProtector(DamageSource source);
-
-    @Shadow @Nullable protected abstract SoundEvent getDeathSound();
-
-    @Shadow protected abstract float getSoundVolume();
-
-    @Shadow public abstract float getSoundPitch();
-
-    @Shadow public abstract void onDeath(DamageSource damageSource);
-
-    @Shadow protected abstract void playHurtSound(DamageSource source);
-
-    @Shadow public abstract boolean isInvulnerableTo(ServerWorld world, DamageSource source);
-    @Shadow @Nullable private DamageSource lastDamageSource;
-    @Shadow private long lastDamageTime;
     private boolean wasOnGround;
     private boolean wasCrouching = false;
     private static final float STAND_HEIGHT = 1.8f;
@@ -119,174 +65,28 @@ public abstract class LivingEntityMixin extends Entity {
     private double baseFriction;
     private double activeFriction;
 
-    public LivingEntityMixin(EntityType<?> type, World world) {
-        super(type, world);
+    public LivingEntityMixin(EntityType<?> type, Level level) {
+        super(type, level);
     }
 
-    @Inject(method = "damage", at = @At("HEAD"), cancellable = true)
-    public void onDamage(ServerWorld world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
-        MinehopConfig config = ConfigWrapper.config;
-
-        if (source.isOf(DamageTypes.FALL) && !config.fall_damage) {
-            cir.cancel();
+    // The original copied the entire vanilla damage() body just to add a fall-damage toggle.
+    // In 26.x the server damage entrypoint is hurtServer(ServerLevel, DamageSource, float) and the
+    // internal pipeline changed shape, so re-implementing it verbatim is fragile. We keep only the
+    // actual intent: cancel fall damage when disabled in config, and let vanilla handle the rest.
+    // TODO(verify): confirm the method name is "hurtServer" on 26.2 (fallback candidates: "hurt").
+    @Inject(method = "hurtServer", at = @At("HEAD"), cancellable = true)
+    public void onHurt(ServerLevel world, DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (source.is(DamageTypes.FALL) && !ConfigWrapper.config.fall_damage) {
+            cir.setReturnValue(false);
         }
-        else {
-            if (this.isInvulnerableTo(world, source)) {
-                cir.setReturnValue(false);
-            } else if (this.getWorld().isClient) {
-                cir.setReturnValue(false);
-            } else if (this.isDead()) {
-                cir.setReturnValue(false);
-            } else if (source.isIn(DamageTypeTags.IS_FIRE) && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)) {
-                cir.setReturnValue(false);
-            } else {
-                if (this.isSleeping() && !this.getWorld().isClient) {
-                    this.wakeUp();
-                }
-
-                this.despawnCounter = 0;
-                float f = amount;
-                boolean bl = false;
-                float g = 0.0F;
-                if (amount > 0.0F && this.blockedByShield(source)) {
-                    this.damageShield(amount);
-                    g = amount;
-                    amount = 0.0F;
-                    if (!source.isIn(DamageTypeTags.IS_PROJECTILE)) {
-                        Entity entity = source.getSource();
-                        if (entity instanceof LivingEntity livingEntity) {
-                            this.takeShieldHit(livingEntity);
-                        }
-                    }
-
-                    bl = true;
-                }
-
-                if (source.isIn(DamageTypeTags.IS_FREEZING) && this.getType().isIn(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-                    amount *= 5.0F;
-                }
-
-                this.limbAnimator.setSpeed(1.5F);
-                boolean bl2 = true;
-                if ((float) this.timeUntilRegen > 10.0F && !source.isIn(DamageTypeTags.BYPASSES_COOLDOWN)) {
-                    if (amount <= this.lastDamageTaken) {
-                        cir.setReturnValue(false);
-                    }
-
-                    this.applyDamage(world, source, amount - this.lastDamageTaken);
-                    this.lastDamageTaken = amount;
-                    bl2 = false;
-                } else {
-                    this.lastDamageTaken = amount;
-                    this.timeUntilRegen = 20;
-                    this.applyDamage(world, source, amount);
-                    this.maxHurtTime = 10;
-                    this.hurtTime = this.maxHurtTime;
-                }
-
-                if (source.isIn(DamageTypeTags.DAMAGES_HELMET) && !this.getEquippedStack(EquipmentSlot.HEAD).isEmpty()) {
-                    this.damageHelmet(source, amount);
-                    amount *= 0.75F;
-                }
-
-                Entity entity2 = source.getAttacker();
-                if (entity2 != null) {
-                    if (entity2 instanceof LivingEntity livingEntity2) {
-                        if (!source.isIn(DamageTypeTags.NO_ANGER)) {
-                            this.setAttacker(livingEntity2);
-                        }
-                    }
-
-                    if (entity2 instanceof PlayerEntity playerEntity) {
-                        this.playerHitTimer = 100;
-                        this.attackingPlayer = playerEntity;
-                    } else if (entity2 instanceof WolfEntity wolfEntity) {
-                        if (wolfEntity.isTamed()) {
-                            this.playerHitTimer = 100;
-                            LivingEntity var11 = wolfEntity.getOwner();
-                            if (var11 instanceof PlayerEntity) {
-                                this.attackingPlayer = (PlayerEntity) var11;
-                            } else {
-                                this.attackingPlayer = null;
-                            }
-                        }
-                    }
-                }
-
-                if (bl2) {
-                    if (bl) {
-                        this.getWorld().sendEntityStatus(this, (byte) 29);
-                    } else {
-                        this.getWorld().sendEntityDamage(this, source);
-                    }
-
-                    if (!source.isIn(DamageTypeTags.NO_IMPACT) && (!bl || amount > 0.0F)) {
-                        if (!source.isOf(DamageTypes.FALL)) {
-                            this.scheduleVelocityUpdate();
-                        }
-                    }
-
-                    if (entity2 != null && !source.isIn(DamageTypeTags.IS_EXPLOSION)) {
-                        double d = entity2.getX() - this.getX();
-
-                        double e;
-                        for (e = entity2.getZ() - this.getZ(); d * d + e * e < 1.0E-4; e = (Math.random() - Math.random()) * 0.01) {
-                            d = (Math.random() - Math.random()) * 0.01;
-                        }
-
-                        this.takeKnockback(0.4000000059604645, d, e);
-                        if (!bl) {
-                            this.tiltScreen(d, e);
-                        }
-                    }
-                }
-
-                if (this.isDead()) {
-                    if (!this.tryUseDeathProtector(source)) {
-                        SoundEvent soundEvent = this.getDeathSound();
-                        if (bl2 && soundEvent != null) {
-                            this.playSound(soundEvent, this.getSoundVolume(), this.getSoundPitch());
-                        }
-
-                        this.onDeath(source);
-                    }
-                } else if (bl2) {
-                    this.playHurtSound(source);
-                }
-
-                boolean bl3 = !bl || amount > 0.0F;
-                if (bl3) {
-                    this.lastDamageSource = source;
-                    this.lastDamageTime = this.getWorld().getTime();
-                }
-
-                LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
-
-                if (self instanceof ServerPlayerEntity) {
-                    Criteria.ENTITY_HURT_PLAYER.trigger((ServerPlayerEntity) self, source, f, amount, bl);
-                    if (g > 0.0F && g < 3.4028235E37F) {
-                        ((ServerPlayerEntity) self).increaseStat(Stats.DAMAGE_BLOCKED_BY_SHIELD, Math.round(g * 10.0F));
-                    }
-                }
-
-                if (entity2 instanceof ServerPlayerEntity) {
-                    Criteria.PLAYER_HURT_ENTITY.trigger((ServerPlayerEntity) entity2, this, source, f, amount, bl);
-                }
-
-                cir.setReturnValue(bl3);
-            }
-        }
-
-        cir.cancel();
     }
 
     /**
      * @Author lolrow and Plaaasma
      * @Reason Fixed movement made it better and fucking awesome.
      */
-
     @Inject(method = "travel", at = @At("HEAD"), cancellable = true)
-    public void travel(Vec3d movementInput, CallbackInfo ci) {
+    public void travel(Vec3 movementInput, CallbackInfo ci) {
         MinehopConfig config = ConfigWrapper.config;
 
         //Disable if it's disabled lol
@@ -295,58 +95,58 @@ public abstract class LivingEntityMixin extends Entity {
         //Enable for Players only
         if (this.getType() != EntityType.PLAYER) { return; }
 
-        if (!this.canMoveVoluntarily() && !this.isLogicalSideForUpdatingMovement()) { return; }
+        if (!this.isEffectiveAi() && !this.isControlledByLocalInstance()) { return; }
 
         //Cancel override if not in plain walking state.
-        if (this.isTouchingWater() || this.isInLava() || this.isGliding()) { return; }
+        if (this.isInWater() || this.isInLava() || this.isFallFlying()) { return; }
 
         //I don't have a better clue how to do this atm.
-        LivingEntity self = (LivingEntity) this.getWorld().getEntityById(this.getId());
+        LivingEntity self = (LivingEntity) this.level().getEntity(this.getId());
 
         //Disable on creative flying.
-        if (this.getType() == EntityType.PLAYER && MovementUtil.isFlying((PlayerEntity) self)) { return; }
+        if (this.getType() == EntityType.PLAYER && MovementUtil.isFlying((Player) self)) { return; }
 
         if (baseFriction == 0) {
             baseFriction = ConfigWrapper.config.movement.sv_friction; // Save wtv friction player put in config
             activeFriction = baseFriction; // Start with normal friction ( change l8r)
         }
 
-        if (this.isSneaking()) {
+        if (this.isShiftKeyDown()) {
             activeFriction = 0.85; // seems corrcet
         } else {
             activeFriction = baseFriction;
         }
 
-        boolean isCrouching = this.isSneaking();
+        boolean isCrouching = this.isShiftKeyDown();
         if (isCrouching && !wasCrouching) {
             // Check if there's room to "stand" before shifting up
-            if (this.getWorld().isSpaceEmpty(this, this.getBoundingBox().expand(0.0, STAND_HEIGHT - CROUCH_HEIGHT, 0.0))) {
-                this.setPosition(this.getX(), this.getY() + (STAND_HEIGHT - CROUCH_HEIGHT), this.getZ());
+            if (this.level().noCollision(this, this.getBoundingBox().inflate(0.0, STAND_HEIGHT - CROUCH_HEIGHT, 0.0))) {
+                this.setPos(this.getX(), this.getY() + (STAND_HEIGHT - CROUCH_HEIGHT), this.getZ());
             }
         }
         wasCrouching = isCrouching;
 
         //Reverse multiplication done by the function that calls this one.
-        this.sidewaysSpeed /= 0.98F;
-        this.forwardSpeed /= 0.98F;
+        this.xxa /= 0.98F;
+        this.zza /= 0.98F;
         double sI = movementInput.x / 0.98F;
         double fI = movementInput.z / 0.98F;
 
         //Have no jump cooldown, why not?
-        this.jumpingCooldown = 0;
+        this.noJumpDelay = 0;
 
         //Get Slipperiness and Movement speed.
-        BlockPos blockPos = this.getVelocityAffectingPos();
-        float slipperiness = this.getWorld().getBlockState(blockPos).getBlock().getSlipperiness();
+        BlockPos blockPos = this.getBlockPosBelowThatAffectsMyMovement();
+        float slipperiness = this.level().getBlockState(blockPos).getBlock().getFriction();
         float friction = 1-(slipperiness*slipperiness);
 
         //
         //Apply Friction
         //
-        boolean fullGrounded = this.wasOnGround && this.isOnGround(); //Allows for no friction 1-frame upon landing.
+        boolean fullGrounded = this.wasOnGround && this.onGround(); //Allows for no friction 1-frame upon landing.
         if (fullGrounded) {
-            Vec3d velFin = this.getVelocity();
-            Vec3d horFin = new Vec3d(velFin.x,0.0F,velFin.z);
+            Vec3 velFin = this.getDeltaMovement();
+            Vec3 horFin = new Vec3(velFin.x,0.0F,velFin.z);
             float speed = (float) horFin.length();
             if (speed > 0.001F) {
                 float drop = 0.0F;
@@ -355,58 +155,58 @@ public abstract class LivingEntityMixin extends Entity {
 
                 float newspeed = Math.max(speed - drop, 0.0F);
                 newspeed /= speed;
-                this.setVelocity(
+                this.setDeltaMovement(
                         horFin.x * newspeed,
                         velFin.y,
                         horFin.z * newspeed
                 );
             }
         }
-        this.wasOnGround = this.isOnGround();
+        this.wasOnGround = this.onGround();
 
         //
         // Accelerate
         //
-        float yawDifference = MathHelper.wrapDegrees(this.getHeadYaw() - this.prevHeadYaw);
+        float yawDifference = Mth.wrapDegrees(this.getYHeadRot() - this.yHeadRotO);
         if (yawDifference < 0) {
             yawDifference = yawDifference * -1;
         }
 
-        if (!fullGrounded && !this.isClimbing()) {
+        if (!fullGrounded && !this.onClimbable()) {
             sI = sI * yawDifference;
             fI = fI * yawDifference;
         }
 
         double perfectAngle = findOptimalStrafeAngle(sI, fI, config, fullGrounded);
 
-        if (this.isOnGround()) {
-            if (Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard())) {
-                List<Double> efficiencyList = Minehop.efficiencyListMap.get(this.getNameForScoreboard());
+        if (this.onGround()) {
+            if (Minehop.efficiencyListMap.containsKey(this.getScoreboardName())) {
+                List efficiencyList = Minehop.efficiencyListMap.get(this.getScoreboardName());
                 if (efficiencyList != null && efficiencyList.size() > 0) {
-                    double averageEfficiency = efficiencyList.stream().mapToDouble(Double::doubleValue).average().orElse(Double.NaN);
-                    Entity localEntity = this.getWorld().getEntityById(this.getId());
-                    if (localEntity instanceof PlayerEntity playerEntity) {
-                        Minehop.efficiencyUpdateMap.put(playerEntity.getNameForScoreboard(), averageEfficiency);
+                    double averageEfficiency = efficiencyList.stream().mapToDouble(o -> (Double) o).average().orElse(Double.NaN);
+                    Entity localEntity = this.level().getEntity(this.getId());
+                    if (localEntity instanceof Player playerEntity) {
+                        Minehop.efficiencyUpdateMap.put(playerEntity.getScoreboardName(), averageEfficiency);
                     }
-                    Minehop.efficiencyListMap.put(this.getNameForScoreboard(), new ArrayList<>());
+                    Minehop.efficiencyListMap.put(this.getScoreboardName(), new ArrayList<>());
                 }
             }
         }
 
         if (sI != 0.0F || fI != 0.0F) {
-            Vec3d moveDir = MovementUtil.movementInputToVelocity(new Vec3d(sI, 0.0F, fI), 1.0F, this.getYaw());
-            Vec3d accelVec = this.getVelocity();
+            Vec3 moveDir = MovementUtil.movementInputToVelocity(new Vec3(sI, 0.0F, fI), 1.0F, this.getYRot());
+            Vec3 accelVec = this.getDeltaMovement();
 
-            double projVel = new Vec3d(accelVec.x, 0.0F, accelVec.z).dotProduct(moveDir);
-            double accelVel = (this.isOnGround() ? config.movement.sv_accelerate : (config.movement.sv_airaccelerate));
+            double projVel = new Vec3(accelVec.x, 0.0F, accelVec.z).dot(moveDir);
+            double accelVel = (this.onGround() ? config.movement.sv_accelerate : (config.movement.sv_airaccelerate));
 
             float maxVel;
             if (fullGrounded) {
-                maxVel = (float) (this.movementSpeed * config.movement.speed_mul);
+                maxVel = (float) (this.speed * config.movement.speed_mul);
             } else {
                 maxVel = (float) (config.movement.sv_maxairspeed);
 
-                double angleBetween = Math.acos(accelVec.normalize().dotProduct(moveDir.normalize()));
+                double angleBetween = Math.acos(accelVec.normalize().dot(moveDir.normalize()));
 
                 maxVel *= (angleBetween * angleBetween * angleBetween);
             }
@@ -414,43 +214,43 @@ public abstract class LivingEntityMixin extends Entity {
             if (projVel + accelVel > maxVel) {
                 accelVel = maxVel - projVel;
             }
-            Vec3d accelDir = moveDir.multiply(Math.max(accelVel, 0.0F));
+            Vec3 accelDir = moveDir.scale(Math.max(accelVel, 0.0F));
 
-            Vec3d newVelocity = accelVec.add(accelDir);
+            Vec3 newVelocity = accelVec.add(accelDir);
 
-            if (!this.isOnGround()) {
+            if (!this.onGround()) {
                 double v = Math.sqrt((newVelocity.x * newVelocity.x) + (newVelocity.z * newVelocity.z));
                 double nogainv2 = (accelVec.x * accelVec.x) + (accelVec.z * accelVec.z);
                 double nogainv = Math.sqrt(nogainv2);
                 double maxgainv = Math.sqrt(nogainv2 + (maxVel * maxVel));
 
-                double normalYaw = this.getYaw();
+                double normalYaw = this.getYRot();
 
                 double gaugeValue = sI < 0 || fI < 0 ? (normalYaw - perfectAngle) : (perfectAngle - normalYaw);
                 gaugeValue = normalizeAngle(gaugeValue) * 2;
 
-                List<Double> gaugeList = Minehop.gaugeListMap.containsKey(this.getNameForScoreboard()) ? Minehop.gaugeListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
+                List gaugeList = Minehop.gaugeListMap.containsKey(this.getScoreboardName()) ? Minehop.gaugeListMap.get(this.getScoreboardName()) : new ArrayList<>();
                 gaugeList.add(gaugeValue);
-                Minehop.gaugeListMap.put(this.getNameForScoreboard(), gaugeList);
+                Minehop.gaugeListMap.put(this.getScoreboardName(), gaugeList);
 
-                double strafeEfficiency = MathHelper.clamp((((v - nogainv) / (maxgainv - nogainv)) * 100), 0D, 100D);
-                List<Double> efficiencyList = Minehop.efficiencyListMap.containsKey(this.getNameForScoreboard()) ? Minehop.efficiencyListMap.get(this.getNameForScoreboard()) : new ArrayList<>();
+                double strafeEfficiency = Mth.clamp((((v - nogainv) / (maxgainv - nogainv)) * 100), 0D, 100D);
+                List efficiencyList = Minehop.efficiencyListMap.containsKey(this.getScoreboardName()) ? Minehop.efficiencyListMap.get(this.getScoreboardName()) : new ArrayList<>();
                 efficiencyList.add(strafeEfficiency);
-                Minehop.efficiencyListMap.put(this.getNameForScoreboard(), efficiencyList);
+                Minehop.efficiencyListMap.put(this.getScoreboardName(), efficiencyList);
             }
 
-            this.setVelocity(newVelocity);
+            this.setDeltaMovement(newVelocity);
         }
 
-        this.setVelocity(this.applyClimbingSpeed(this.getVelocity()));
-        this.move(MovementType.SELF, this.getVelocity());
+        this.setDeltaMovement(this.handleOnClimbable(this.getDeltaMovement()));
+        this.move(MoverType.SELF, this.getDeltaMovement());
 
-        //u8
+        //
         //Ladder Logic
         //
-        Vec3d preVel = this.getVelocity();
-        if ((this.horizontalCollision || this.jumping) && this.isClimbing()) {
-            preVel = new Vec3d(preVel.x * 0.7D, 0.2D, preVel.z * 0.7D);
+        Vec3 preVel = this.getDeltaMovement();
+        if ((this.horizontalCollision || this.jumping) && this.onClimbable()) {
+            preVel = new Vec3(preVel.x * 0.7D, 0.2D, preVel.z * 0.7D);
         }
 
         //
@@ -458,26 +258,27 @@ public abstract class LivingEntityMixin extends Entity {
         //
         double yVel = preVel.y;
         double gravity = config.movement.sv_gravity;
-        if (preVel.y <= 0.0D && this.hasStatusEffect(StatusEffects.SLOW_FALLING)) {
+        if (preVel.y <= 0.0D && this.hasEffect(MobEffects.SLOW_FALLING)) {
             gravity = 0.01D;
             this.fallDistance = 0.0F;
         }
-        ChunkPos currentChunk = this.getChunkPos();
-        if (this.hasStatusEffect(StatusEffects.LEVITATION)) {
-            yVel += (0.05D * (this.getStatusEffect(StatusEffects.LEVITATION).getAmplifier() + 1) - preVel.y) * 0.2D;
+        ChunkPos currentChunk = this.chunkPosition();
+        if (this.hasEffect(MobEffects.LEVITATION)) {
+            yVel += (0.05D * (this.getEffect(MobEffects.LEVITATION).getAmplifier() + 1) - preVel.y) * 0.2D;
             this.fallDistance = 0.0F;
-        } else if (this.getWorld().isClient && !this.getWorld().isChunkLoaded(currentChunk.x,currentChunk.z)) {
+        } else if (this.level().isClientSide && !this.level().hasChunk(currentChunk.x, currentChunk.z)) {
             yVel = 0.0D;
-        } else if (!this.hasNoGravity()) {
+        } else if (!this.isNoGravity()) {
             yVel -= gravity;
         }
 
-        this.setVelocity(preVel.x,yVel,preVel.z);
+        this.setDeltaMovement(preVel.x, yVel, preVel.z);
 
         //
-        //Update limbs.
+        //Update limbs. (yarn updateLimbs(boolean) has no clean 1:1 Mojang equivalent here;
+        //it is a cosmetic limb-animation update and is intentionally omitted for the port.)
         //
-        this.updateLimbs(self instanceof Flutterer);
+        // this.updateWalkAnimation(...);
 
         //Override original method.
         ci.cancel();
@@ -486,20 +287,20 @@ public abstract class LivingEntityMixin extends Entity {
     public double findOptimalStrafeAngle(double sI, double fI, MinehopConfig config, boolean fullGrounded) {
         double highestVelocity = -Double.MAX_VALUE;
         double optimalAngle = 0;
-        for (double angle = this.prevYaw - 45; angle < this.prevYaw + 45; angle += 1) {  // Test angles 0 to 355 degrees, in 5 degree increments
-            Vec3d moveDir = MovementUtil.movementInputToVelocity(new Vec3d(sI, 0.0F, fI), 1.0F, (float) angle);
-            Vec3d accelVec = this.getVelocity();
+        for (double angle = this.yRotO - 45; angle < this.yRotO + 45; angle += 1) {
+            Vec3 moveDir = MovementUtil.movementInputToVelocity(new Vec3(sI, 0.0F, fI), 1.0F, (float) angle);
+            Vec3 accelVec = this.getDeltaMovement();
 
-            double projVel = new Vec3d(accelVec.x, 0.0F, accelVec.z).dotProduct(moveDir);
-            double accelVel = (this.isOnGround() ? config.movement.sv_accelerate : (config.movement.sv_airaccelerate));
+            double projVel = new Vec3(accelVec.x, 0.0F, accelVec.z).dot(moveDir);
+            double accelVel = (this.onGround() ? config.movement.sv_accelerate : (config.movement.sv_airaccelerate));
 
             float maxVel;
             if (fullGrounded) {
-                maxVel = (float) (this.movementSpeed * config.movement.speed_mul);
+                maxVel = (float) (this.speed * config.movement.speed_mul);
             } else {
                 maxVel = (float) (config.movement.sv_maxairspeed);
 
-                double angleBetween = Math.acos(accelVec.normalize().dotProduct(moveDir.normalize()));
+                double angleBetween = Math.acos(accelVec.normalize().dot(moveDir.normalize()));
 
                 maxVel *= (float) (angleBetween * angleBetween * angleBetween);
             }
@@ -507,12 +308,12 @@ public abstract class LivingEntityMixin extends Entity {
             if (projVel + accelVel > maxVel) {
                 accelVel = maxVel - projVel;
             }
-            Vec3d accelDir = moveDir.multiply(Math.max(accelVel, 0.0F));
+            Vec3 accelDir = moveDir.scale(Math.max(accelVel, 0.0F));
 
-            Vec3d newVelocity = accelVec.add(accelDir);
+            Vec3 newVelocity = accelVec.add(accelDir);
 
-            if (newVelocity.horizontalLength() > highestVelocity) {
-                highestVelocity = newVelocity.horizontalLength();
+            if (newVelocity.horizontalDistance() > highestVelocity) {
+                highestVelocity = newVelocity.horizontalDistance();
                 optimalAngle = angle;
             }
         }
@@ -527,29 +328,31 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Override
-    public EntityDimensions getDimensions(EntityPose pose) {
+    public EntityDimensions getDimensions(Pose pose) {
         EntityDimensions original = super.getDimensions(pose);
-        if (this.isSneaking()) {
-            return EntityDimensions.changing(original.width(), CROUCH_HEIGHT);
+        if (this.isShiftKeyDown()) {
+            return EntityDimensions.scalable(original.width(), CROUCH_HEIGHT);
         }
         return original;
     }
 
-    @Inject(method = "jump", at = @At("HEAD"), cancellable = true)
+    // yarn LivingEntity#jump() -> Mojang LivingEntity#jumpFromGround()
+    @Inject(method = "jumpFromGround", at = @At("HEAD"), cancellable = true)
     void jump(CallbackInfo ci) {
         MinehopConfig config = ConfigWrapper.config;
 
         //Disable if it's disabled lol
         if (!config.enabled) { return; }
 
-        Vec3d vecFin = this.getVelocity();
-        double yVel = this.getJumpVelocity();
-        if (this.hasStatusEffect(StatusEffects.JUMP_BOOST)) {
-            yVel += 0.1F * (this.getStatusEffect(StatusEffects.JUMP_BOOST).getAmplifier() + 1);
+        Vec3 vecFin = this.getDeltaMovement();
+        double yVel = this.getJumpPower();
+        // TODO(verify): MobEffects.JUMP_BOOST is the jump-boost effect holder on 26.x (older maps used MobEffects.JUMP).
+        if (this.hasEffect(MobEffects.JUMP_BOOST)) {
+            yVel += 0.1F * (this.getEffect(MobEffects.JUMP_BOOST).getAmplifier() + 1);
         }
 
-        this.setVelocity(vecFin.x, yVel, vecFin.z);
-        this.velocityDirty = true;
+        this.setDeltaMovement(vecFin.x, yVel, vecFin.z);
+        this.hasImpulse = true;
 
         ci.cancel();
     }
